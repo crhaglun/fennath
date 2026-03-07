@@ -70,11 +70,7 @@ public sealed partial class AcmeService(
         var certificate = X509CertificateLoader.LoadPkcs12(pfxBytes, null,
             X509KeyStorageFlags.Exportable);
 
-        // Store for each hostname
-        foreach (var hostname in hostnames)
-        {
-            CertStore.StoreCertificate(hostname, certificate);
-        }
+        CertStore.StoreCertificate(certificate);
 
         // Clean up DNS challenge records
         foreach (var auth in authorizations)

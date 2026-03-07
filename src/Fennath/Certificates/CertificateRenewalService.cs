@@ -5,8 +5,8 @@ using Microsoft.Extensions.Options;
 namespace Fennath.Certificates;
 
 /// <summary>
-/// Background service that ensures certificates are provisioned on startup
-/// and renewed before expiry. Checks daily for certificates expiring within 30 days.
+/// Background service that ensures the wildcard certificate is provisioned on startup
+/// and renewed before expiry. Checks daily.
 /// </summary>
 public sealed partial class CertificateRenewalService(
     AcmeService AcmeService,
@@ -22,70 +22,42 @@ public sealed partial class CertificateRenewalService(
     {
         do
         {
-            await EnsureCertificatesAsync(stoppingToken);
+            await EnsureCertificateAsync(stoppingToken);
             await Task.Delay(CheckInterval, stoppingToken);
         } while (!stoppingToken.IsCancellationRequested);
     }
 
-    private async Task EnsureCertificatesAsync(CancellationToken ct)
+    private async Task EnsureCertificateAsync(CancellationToken ct)
     {
         try
         {
-            var config = OptionsMonitor.CurrentValue;
-            var expiries = CertStore.GetCertificateExpiries();
+            var wildcardHost = $"*.{OptionsMonitor.CurrentValue.Domain}";
+            var expiry = CertStore.GetExpiry();
 
-            // Report cert expiry metrics for all known certificates
-            foreach (var (hostname, expiry) in expiries)
+            if (expiry is not null)
             {
-                var daysRemaining = (expiry - DateTime.UtcNow).TotalDays;
-                Metrics.CertExpiryDays.Record(daysRemaining,
-                    new KeyValuePair<string, object?>("hostname", hostname));
+                var remaining = expiry.Value - DateTime.UtcNow;
+                Metrics.CertExpiryDays.Record(remaining.TotalDays,
+                    new KeyValuePair<string, object?>("hostname", wildcardHost));
+
+                if (remaining > RenewalThreshold)
+                {
+                    LogCertificateValid(Logger, wildcardHost, remaining.Days);
+                    return;
+                }
+
+                LogCertificateRenewing(Logger, wildcardHost, remaining.Days);
+            }
+            else
+            {
+                LogCertificateProvisioning(Logger, wildcardHost);
             }
 
-            var wildcardHost = $"*.{config.Domain}";
-            await EnsureCertificateAsync(wildcardHost, expiries, ct);
+            await AcmeService.ProvisionWildcardCertificateAsync(ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogRenewalCheckFailed(Logger, ex);
-        }
-    }
-
-    private async Task EnsureCertificateAsync(
-        string hostname,
-        IReadOnlyDictionary<string, DateTime> expiries,
-        CancellationToken ct)
-    {
-        if (expiries.TryGetValue(hostname, out var expiry))
-        {
-            var remaining = expiry - DateTime.UtcNow;
-            if (remaining > RenewalThreshold)
-            {
-                LogCertificateValid(Logger, hostname, remaining.Days);
-                return;
-            }
-
-            LogCertificateRenewing(Logger, hostname, remaining.Days);
-        }
-        else
-        {
-            LogCertificateProvisioning(Logger, hostname);
-        }
-
-        try
-        {
-            if (hostname.StartsWith('*'))
-            {
-                await AcmeService.ProvisionWildcardCertificateAsync(ct);
-            }
-            else
-            {
-                await AcmeService.ProvisionCertificateAsync([hostname], ct);
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            LogProvisioningFailed(Logger, hostname, ex);
         }
     }
 
@@ -97,9 +69,6 @@ public sealed partial class CertificateRenewalService(
 
     [LoggerMessage(EventId = 1112, Level = LogLevel.Information, Message = "No certificate found for {hostname}, provisioning")]
     private static partial void LogCertificateProvisioning(ILogger logger, string hostname);
-
-    [LoggerMessage(EventId = 1113, Level = LogLevel.Error, Message = "Failed to provision/renew certificate for {hostname}")]
-    private static partial void LogProvisioningFailed(ILogger logger, string hostname, Exception ex);
 
     [LoggerMessage(EventId = 1114, Level = LogLevel.Error, Message = "Certificate renewal check failed")]
     private static partial void LogRenewalCheckFailed(ILogger logger, Exception ex);
