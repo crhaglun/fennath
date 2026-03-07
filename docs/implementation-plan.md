@@ -178,13 +178,13 @@ Sensitive values use environment variables: `Fennath__Dns__Loopia__Password=secr
 
 **Deliverable:** `https://grafana.example.com` works with a valid Let's Encrypt cert.
 
-### Phase 3: DNS Management
+### Phase 3: DNS Management (in progress)
 **Goal:** Automatic DNS record management.
 
-- [ ] Public IP detection via external service (e.g., `api.ipify.org`)
-- [ ] Periodic IP check with change detection
-- [ ] Automatic A record updates via Loopia API when IP changes
-- [ ] Subdomain record management tied to route configuration
+- [x] Public IP detection via external echo services with fallback (PublicIpResolver)
+- [x] Periodic IP check with change detection (DnsUpdateService background service)
+- [x] Automatic A record updates via Loopia API when IP changes
+- [x] Subdomain record management tied to route configuration
 
 **Deliverable:** DNS records stay in sync with config and public IP automatically.
 
