@@ -29,7 +29,7 @@ fennath/
 │   ├── Certificates/         # ACME/Let's Encrypt cert management
 │   ├── Dns/                  # Loopia XML-RPC DNS provider
 │   ├── Discovery/            # Route discovery (static + Docker)
-│   └── Telemetry/            # OpenTelemetry setup
+│   └── Telemetry/            # OpenTelemetry setup and custom metrics
 ├── tests/Fennath.Tests/      # Unit and integration tests
 ├── docs/                     # Design documents and ADRs
 ├── Dockerfile                # Container build
@@ -102,7 +102,7 @@ docker compose up -d
 ### Dependencies
 - **YARP** (`Yarp.ReverseProxy`) — reverse proxy engine
 - **Certes** — ACME v2 client for Let's Encrypt (targets .NET Standard 2.0; see ADR-002)
-- **OpenTelemetry .NET SDK** — traces, metrics, logs export
+- **OpenTelemetry .NET SDK** — traces, metrics, logs export (see ADR-006)
 - **TUnit** — test framework
 
 ### Package Management

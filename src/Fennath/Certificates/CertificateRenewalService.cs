@@ -1,4 +1,5 @@
 using Fennath.Configuration;
+using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
 namespace Fennath.Certificates;
@@ -15,17 +16,20 @@ public sealed partial class CertificateRenewalService : BackgroundService
     private readonly AcmeService _acmeService;
     private readonly CertificateStore _certStore;
     private readonly IOptionsMonitor<FennathConfig> _optionsMonitor;
+    private readonly FennathMetrics _metrics;
     private readonly ILogger<CertificateRenewalService> _logger;
 
     public CertificateRenewalService(
         AcmeService acmeService,
         CertificateStore certStore,
         IOptionsMonitor<FennathConfig> optionsMonitor,
+        FennathMetrics metrics,
         ILogger<CertificateRenewalService> logger)
     {
         _acmeService = acmeService;
         _certStore = certStore;
         _optionsMonitor = optionsMonitor;
+        _metrics = metrics;
         _logger = logger;
     }
 
@@ -47,6 +51,14 @@ public sealed partial class CertificateRenewalService : BackgroundService
         {
             var config = _optionsMonitor.CurrentValue;
             var expiries = _certStore.GetCertificateExpiries();
+
+            // Report cert expiry metrics for all known certificates
+            foreach (var (hostname, expiry) in expiries)
+            {
+                var daysRemaining = (expiry - DateTime.UtcNow).TotalDays;
+                _metrics.CertExpiryDays.Record(daysRemaining,
+                    new KeyValuePair<string, object?>("hostname", hostname));
+            }
 
             if (config.Certificates.Wildcard)
             {

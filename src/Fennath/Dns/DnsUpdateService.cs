@@ -1,4 +1,5 @@
 using Fennath.Configuration;
+using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
 namespace Fennath.Dns;
@@ -13,6 +14,7 @@ public sealed partial class DnsUpdateService : BackgroundService
     private readonly PublicIpResolver _ipResolver;
     private readonly IDnsProvider _dnsProvider;
     private readonly IOptionsMonitor<FennathConfig> _optionsMonitor;
+    private readonly FennathMetrics _metrics;
     private readonly ILogger<DnsUpdateService> _logger;
     private string? _lastKnownIp;
 
@@ -20,11 +22,13 @@ public sealed partial class DnsUpdateService : BackgroundService
         PublicIpResolver ipResolver,
         IDnsProvider dnsProvider,
         IOptionsMonitor<FennathConfig> optionsMonitor,
+        FennathMetrics metrics,
         ILogger<DnsUpdateService> logger)
     {
         _ipResolver = ipResolver;
         _dnsProvider = dnsProvider;
         _optionsMonitor = optionsMonitor;
+        _metrics = metrics;
         _logger = logger;
     }
 
@@ -59,6 +63,7 @@ public sealed partial class DnsUpdateService : BackgroundService
             if (previousIp is not null)
             {
                 LogIpChanged(_logger, previousIp, currentIp);
+                _metrics.IpChangesTotal.Add(1);
             }
             else
             {
@@ -81,6 +86,7 @@ public sealed partial class DnsUpdateService : BackgroundService
             }
 
             LogDnsUpdateComplete(_logger, config.Routes.Count + 2);
+            _metrics.DnsUpdatesTotal.Add(1);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

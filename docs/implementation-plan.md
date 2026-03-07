@@ -208,14 +208,14 @@ fennath.healthcheck.interval=30
 
 **Deliverable:** `docker run --label fennath.subdomain=myapp --label fennath.backend=http://app:80 ...` auto-creates the route.
 
-### Phase 5: Observability
+### Phase 5: Observability ✅
 **Goal:** Full telemetry to Grafana Cloud.
 
-- [ ] OpenTelemetry SDK setup with OTLP gRPC exporter
-- [ ] Request traces with W3C TraceContext propagation
-- [ ] Custom metrics (requests, latency, backend health, cert expiry, DNS updates)
-- [ ] Structured log export via OTel
-- [ ] Grafana Cloud integration verified
+- [x] OpenTelemetry SDK setup with OTLP gRPC exporter
+- [x] Request traces with W3C TraceContext propagation
+- [x] Custom metrics (requests, latency, backend health, cert expiry, DNS updates)
+- [x] Structured log export via OTel
+- [x] Grafana Cloud integration verified
 
 **Deliverable:** Grafana dashboards showing request flow, error rates, and system health.
 

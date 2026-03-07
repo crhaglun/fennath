@@ -2,6 +2,7 @@ using Fennath.Certificates;
 using Fennath.Configuration;
 using Fennath.Discovery;
 using Fennath.Proxy;
+using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,7 @@ builder.Services
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<FennathConfig>, FennathConfigValidator>();
 
+builder.Services.AddFennathTelemetry(builder.Configuration);
 builder.Services.AddFennathProxy(builder.Configuration);
 builder.Services.AddHealthChecks();
 
@@ -46,7 +48,10 @@ if (dockerDiscovery is not null)
 _ = app.Services.GetRequiredService<RouteAggregator>();
 
 app.MapHealthChecks("/healthz");
-app.MapReverseProxy();
+app.MapReverseProxy(proxyPipeline =>
+{
+    proxyPipeline.UseMiddleware<Fennath.Telemetry.ProxyMetricsMiddleware>();
+});
 
 var config = app.Services.GetRequiredService<IOptions<FennathConfig>>().Value;
 
