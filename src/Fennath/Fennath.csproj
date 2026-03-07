@@ -8,6 +8,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Certes" />
     <PackageReference Include="Yarp.ReverseProxy" />
   </ItemGroup>
 </Project>

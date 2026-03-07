@@ -1,12 +1,15 @@
+using Fennath.Certificates;
 using Fennath.Configuration;
 using Fennath.Discovery;
+using Fennath.Dns;
 using Microsoft.Extensions.Options;
 using Yarp.ReverseProxy.Configuration;
 
 namespace Fennath.Proxy;
 
 /// <summary>
-/// Configures the YARP reverse proxy pipeline and wires up route discovery.
+/// Configures the YARP reverse proxy pipeline and wires up route discovery,
+/// DNS management, and certificate services.
 /// </summary>
 public static class YarpConfigurator
 {
@@ -15,14 +18,14 @@ public static class YarpConfigurator
     /// </summary>
     public static IServiceCollection AddFennathProxy(this IServiceCollection services)
     {
+        // YARP
         var inMemoryConfig = new InMemoryConfigProvider([], []);
-
         services.AddSingleton(inMemoryConfig);
         services.AddSingleton<IProxyConfigProvider>(inMemoryConfig);
         services.AddReverseProxy();
 
+        // Route discovery
         services.AddSingleton<IRouteDiscovery, StaticRouteDiscovery>();
-
         services.AddSingleton(sp =>
         {
             var sources = sp.GetServices<IRouteDiscovery>();
@@ -33,6 +36,18 @@ public static class YarpConfigurator
                 config.Domain,
                 sp.GetRequiredService<ILogger<RouteAggregator>>());
         });
+
+        // DNS
+        services.AddHttpClient<LoopiaDnsProvider>();
+        services.AddSingleton<IDnsProvider>(sp => sp.GetRequiredService<LoopiaDnsProvider>());
+        services.AddHttpClient<PublicIpResolver>();
+        services.AddSingleton<PublicIpResolver>();
+        services.AddHostedService<DnsUpdateService>();
+
+        // Certificates
+        services.AddSingleton<CertificateStore>();
+        services.AddSingleton<AcmeService>();
+        services.AddHostedService<CertificateRenewalService>();
 
         return services;
     }

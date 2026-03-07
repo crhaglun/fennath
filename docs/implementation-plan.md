@@ -168,17 +168,16 @@ Sensitive values use environment variables: `Fennath__Dns__Loopia__Password=secr
 **Goal:** HTTPS with automatic Let's Encrypt wildcard cert.
 
 - [x] Loopia XML-RPC API client (`LoopiaDnsProvider` behind `IDnsProvider`)
-- [ ] ACME DNS-01 challenge solver using Loopia
-- [ ] Certes integration — account creation, CSR, certificate download
-- [ ] Wildcard certificate provisioning from Let's Encrypt
-- [ ] Certificate storage (PFX on disk + in-memory `ConcurrentDictionary`)
-- [ ] Kestrel `ServerCertificateSelector` integration
-- [ ] TLS termination working end-to-end
-- [ ] Background certificate renewal service (auto-renew before expiry)
+- [x] Certes integration — ACME DNS-01 challenge solver via `AcmeService`
+- [x] Certificate storage — PFX on disk + in-memory `ConcurrentDictionary` (`CertificateStore`)
+- [x] Kestrel `ServerCertificateSelector` integration — dynamic cert selection per SNI hostname
+- [x] Background certificate renewal service (`CertificateRenewalService` — auto-renew 30 days before expiry)
+- [x] All certificate services wired into DI via `YarpConfigurator`
+- [ ] TLS termination working end-to-end (needs real Let's Encrypt test or integration test)
 
 **Deliverable:** `https://grafana.example.com` works with a valid Let's Encrypt cert.
 
-### Phase 3: DNS Management (in progress)
+### Phase 3: DNS Management ✅
 **Goal:** Automatic DNS record management.
 
 - [x] Public IP detection via external echo services with fallback (PublicIpResolver)

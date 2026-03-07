@@ -73,8 +73,9 @@ public sealed partial class DnsUpdateService : BackgroundService
             // Update root record (@)
             await _dnsProvider.UpsertARecordAsync("@", currentIp, ct: ct);
 
-            // Update each configured subdomain
-            foreach (var route in config.Routes)
+            // Update each configured subdomain (skip @ since root is already updated above)
+            foreach (var route in config.Routes.Where(
+                r => !string.Equals(r.Subdomain, "@", StringComparison.Ordinal)))
             {
                 await _dnsProvider.UpsertARecordAsync(route.Subdomain, currentIp, ct: ct);
             }

@@ -1,3 +1,4 @@
+using Fennath.Certificates;
 using Fennath.Configuration;
 using Fennath.Discovery;
 using Fennath.Proxy;
@@ -16,6 +17,21 @@ builder.Services.AddSingleton<IValidateOptions<FennathConfig>, FennathConfigVali
 
 builder.Services.AddFennathProxy();
 builder.Services.AddHealthChecks();
+
+// Configure Kestrel TLS with dynamic certificate selection
+builder.WebHost.ConfigureKestrel((context, serverOptions) =>
+{
+    serverOptions.ConfigureHttpsDefaults(httpsOptions =>
+    {
+        CertificateStore? store = null;
+        httpsOptions.ServerCertificateSelector = (connectionContext, hostname) =>
+        {
+            if (hostname is null) return null;
+            store ??= serverOptions.ApplicationServices.GetRequiredService<CertificateStore>();
+            return store.GetCertificate(hostname);
+        };
+    });
+});
 
 var app = builder.Build();
 

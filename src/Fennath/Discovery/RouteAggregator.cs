@@ -53,7 +53,7 @@ public sealed partial class RouteAggregator : IDisposable
         {
             var clusterId = $"cluster-{route.Subdomain}";
             var routeId = $"route-{route.Subdomain}";
-            var host = $"{route.Subdomain}.{_domain}";
+            var host = route.IsApex ? _domain : $"{route.Subdomain}.{_domain}";
 
             yarpRoutes.Add(new RouteConfig
             {

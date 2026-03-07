@@ -84,4 +84,35 @@ public class RouteConflictResolutionTests
         await Assert.That(merged[0].HealthCheckPath).IsEqualTo("/api/health");
         await Assert.That(merged[0].HealthCheckIntervalSeconds).IsEqualTo(60);
     }
+
+    [Test]
+    public async Task Apex_route_is_preserved_through_merge()
+    {
+        var routes = new List<DiscoveredRoute>
+        {
+            new(DiscoveredRoute.ApexMarker, "http://localhost:8080", "static"),
+            new("grafana", "http://localhost:3000", "static"),
+        };
+
+        var merged = RouteAggregator.Merge(routes);
+
+        await Assert.That(merged).Count().IsEqualTo(2);
+        var apex = merged.First(r => r.IsApex);
+        await Assert.That(apex.BackendUrl).IsEqualTo("http://localhost:8080");
+    }
+
+    [Test]
+    public async Task Apex_route_conflict_resolution_follows_same_rules()
+    {
+        var routes = new List<DiscoveredRoute>
+        {
+            new(DiscoveredRoute.ApexMarker, "http://static:80", "static"),
+            new(DiscoveredRoute.ApexMarker, "http://docker:80", "docker"),
+        };
+
+        var merged = RouteAggregator.Merge(routes);
+
+        await Assert.That(merged).Count().IsEqualTo(1);
+        await Assert.That(merged[0].BackendUrl).IsEqualTo("http://static:80");
+    }
 }

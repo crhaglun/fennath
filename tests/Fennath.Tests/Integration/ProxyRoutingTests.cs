@@ -146,6 +146,23 @@ public class ProxyRoutingTests : IAsyncDisposable
         await backend2Host.StopAsync();
     }
 
+    [Test]
+    public async Task Apex_route_matches_bare_domain()
+    {
+        using var fennath = await CreateFennathTestHost(
+            new RouteEntry { Subdomain = "@", Backend = _backendUrl });
+
+        var client = fennath.GetTestClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.Host = "example.com";
+
+        var response = await client.SendAsync(request);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var body = await response.Content.ReadAsStringAsync();
+        await Assert.That(body).IsEqualTo("hello from backend");
+    }
+
     private static async Task<IHost> CreateFennathTestHost(params RouteEntry[] routes)
     {
         var host = Host.CreateDefaultBuilder()
@@ -164,7 +181,10 @@ public class ProxyRoutingTests : IAsyncDisposable
                     {
                         RouteId = $"route-{r.Subdomain}",
                         ClusterId = $"cluster-{r.Subdomain}",
-                        Match = new RouteMatch { Hosts = [$"{r.Subdomain}.example.com"] }
+                        Match = new RouteMatch
+                        {
+                            Hosts = [r.Subdomain == "@" ? "example.com" : $"{r.Subdomain}.example.com"]
+                        }
                     }).ToList();
 
                     var yarpClusters = routes.Select(r => new ClusterConfig
