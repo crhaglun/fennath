@@ -6,9 +6,8 @@ using Microsoft.Extensions.Options;
 namespace Fennath.Discovery;
 
 /// <summary>
-/// Discovers routes from Docker container labels and subscribes to container
-/// start/stop events. Containers opt in with <c>fennath.subdomain</c> and
-/// <c>fennath.backend</c> labels.
+/// Discovers routes from Docker container labels by polling the Docker API.
+/// Containers opt in with <c>fennath.subdomain</c> and <c>fennath.backend</c> labels.
 ///
 /// <para>Supported labels:</para>
 /// <list type="bullet">
@@ -28,14 +27,12 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
     private const string HealthCheckIntervalLabel = "fennath.healthcheck.interval";
 
     private readonly DockerClient _client;
-    private readonly DockerClient _eventClient;
     private readonly ILogger<DockerRouteDiscovery> _logger;
     private readonly CancellationTokenSource _cts = new();
     private readonly Lock _lock = new();
     private List<DiscoveredRoute> _routes = [];
-    private Task? _eventListenerTask;
-    private Timer? _debounceTimer;
-    private const int DebounceMs = 1500;
+    private Task? _pollTask;
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(15);
 
     public event Action? RoutesChanged;
 
@@ -48,14 +45,11 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
             ? $"unix://{config.Docker.SocketPath}"
             : config.Docker.SocketPath);
         _client = new DockerClientConfiguration(uri).CreateClient();
-        // Separate client for the long-lived event stream so it doesn't
-        // contend with request/response calls on the Unix socket.
-        _eventClient = new DockerClientConfiguration(uri).CreateClient();
         _logger = logger;
     }
 
     /// <summary>
-    /// Queries current containers and starts listening for events.
+    /// Queries current containers and starts the polling loop.
     /// Called after DI construction to allow async initialization.
     /// </summary>
     public async Task StartAsync(CancellationToken ct)
@@ -63,7 +57,7 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
         try
         {
             await RefreshFromRunningContainersAsync(ct);
-            _eventListenerTask = ListenForEventsAsync(_cts.Token);
+            _pollTask = PollForChangesAsync(_cts.Token);
             LogStarted(_logger, _routes.Count);
             foreach (var route in _routes)
             {
@@ -101,25 +95,23 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
         }
     }
 
-    private async Task ListenForEventsAsync(CancellationToken ct)
+    private async Task PollForChangesAsync(CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
         {
             try
             {
-                await _eventClient.System.MonitorEventsAsync(
-                    new ContainerEventsParameters
-                    {
-                        Filters = new Dictionary<string, IDictionary<string, bool>>
-                        {
-                            ["type"] = new Dictionary<string, bool> { ["container"] = true }
-                        }
-                    },
-                    new DirectProgress<Message>(OnDockerEvent),
-                    ct);
+                await Task.Delay(PollInterval, ct);
 
-                // MonitorEventsAsync returned — stream ended, reconnect
-                LogEventStreamEnded(_logger);
+                var previous = _routes;
+                await RefreshFromRunningContainersAsync(ct);
+                var current = _routes;
+
+                if (HasChanges(previous, current))
+                {
+                    LogChanges(previous, current);
+                    RoutesChanged?.Invoke();
+                }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -127,51 +119,15 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
             }
             catch (Exception ex)
             {
-                LogEventListenerFailed(_logger, ex);
-                // Back off before reconnecting
-                await Task.Delay(TimeSpan.FromSeconds(5), ct);
+                LogPollFailed(_logger, ex);
             }
         }
     }
 
-    /// <summary>
-    /// IProgress that invokes the callback synchronously on the reporting thread,
-    /// unlike <see cref="Progress{T}"/> which posts to the captured SynchronizationContext.
-    /// </summary>
-    private sealed class DirectProgress<T>(Action<T> handler) : IProgress<T>
-    {
-        public void Report(T value) => handler(value);
-    }
+    private static bool HasChanges(IReadOnlyList<DiscoveredRoute> previous, IReadOnlyList<DiscoveredRoute> current) =>
+        !previous.ToHashSet().SetEquals(current);
 
-    private void OnDockerEvent(Message message)
-    {
-        LogEventReceived(_logger, message.Action ?? "unknown");
-
-        // Trailing-edge debounce: reset the timer on each event so we refresh
-        // once after events stop arriving, rather than on the first event.
-        _debounceTimer?.Dispose();
-        _debounceTimer = new Timer(_ => _ = DebouncedRefreshAsync(), null, DebounceMs, Timeout.Infinite);
-    }
-
-    private async Task DebouncedRefreshAsync()
-    {
-        LogRefreshTriggered(_logger);
-        try
-        {
-            var previous = _routes;
-            await RefreshFromRunningContainersAsync(CancellationToken.None);
-            var current = _routes;
-
-            LogDiff(previous, current);
-            RoutesChanged?.Invoke();
-        }
-        catch (Exception ex)
-        {
-            LogRefreshFailed(_logger, ex);
-        }
-    }
-
-    private void LogDiff(IReadOnlyList<DiscoveredRoute> previous, IReadOnlyList<DiscoveredRoute> current)
+    private void LogChanges(IReadOnlyList<DiscoveredRoute> previous, IReadOnlyList<DiscoveredRoute> current)
     {
         var prevSet = previous.ToHashSet();
         var currSet = current.ToHashSet();
@@ -225,33 +181,19 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
     public async ValueTask DisposeAsync()
     {
         await _cts.CancelAsync();
-        _debounceTimer?.Dispose();
 
-        if (_eventListenerTask is not null)
+        if (_pollTask is not null)
         {
-            try
-            {
-                await _eventListenerTask;
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected
-            }
+            try { await _pollTask; }
+            catch (OperationCanceledException) { }
         }
 
         _cts.Dispose();
         _client.Dispose();
-        _eventClient.Dispose();
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Docker route discovery started, found {count} routes from running containers")]
     private static partial void LogStarted(ILogger logger, int count);
-
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Docker event received: {action}")]
-    private static partial void LogEventReceived(ILogger logger, string action);
-
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Debounced refresh triggered, re-reading containers")]
-    private static partial void LogRefreshTriggered(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Route added: {subdomain} → {backend} ({source})")]
     private static partial void LogRouteAdded(ILogger logger, string subdomain, string backend, string source);
@@ -262,12 +204,6 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
     [LoggerMessage(Level = LogLevel.Warning, Message = "Docker discovery failed to start — container route discovery will be unavailable. Check that the Docker socket is mounted and accessible.")]
     private static partial void LogStartFailed(ILogger logger, Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to refresh container routes after Docker event")]
-    private static partial void LogRefreshFailed(ILogger logger, Exception ex);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Docker event stream ended, reconnecting")]
-    private static partial void LogEventStreamEnded(ILogger logger);
-
-    [LoggerMessage(Level = LogLevel.Error, Message = "Docker event listener failed, reconnecting in 5s")]
-    private static partial void LogEventListenerFailed(ILogger logger, Exception ex);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to poll Docker for container changes")]
+    private static partial void LogPollFailed(ILogger logger, Exception ex);
 }
