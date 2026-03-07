@@ -16,23 +16,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     tmpfs:
       - /tmp
-    environment:
-      # Required — set these in a .env file or override per-host
-      - Fennath__Domain=example.com
-      - Fennath__Dns__Loopia__Username=user@loopiaapi
-      - Fennath__Dns__Loopia__Password=
-      - Fennath__Certificates__Email=admin@example.com
-      # Non-root container — use unprivileged ports internally
-      - Fennath__Server__HttpsPort=8443
-      - Fennath__Server__HttpPort=8080
-      # Optional — uncomment to enable
-      # - Fennath__Certificates__Staging=true
-      # - Fennath__Docker__Enabled=true
-      # OpenTelemetry — uses standard OTEL_* environment variables
-      # - OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-xx.grafana.net/otlp
-      # - OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic <base64>
-      # - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
-      # - OTEL_SERVICE_NAME=fennath
+    env_file:
+      - .env
 
 volumes:
   certs:

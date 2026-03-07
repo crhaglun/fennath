@@ -8,6 +8,7 @@ obj/
 
 # Local configuration (contains secrets — never commit)
 appsettings.local.json
+docker/.env
 
 # Build results
 [Dd]ebug/
