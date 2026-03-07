@@ -50,6 +50,8 @@ fennath/
 ### Code Style
 - Target: .NET 10 / C# 14. Use modern language features (file-scoped namespaces,
   primary constructors, pattern matching, etc.).
+- **Prefer primary constructors** for DI classes (services, controllers, middleware).
+  Use classic constructors only when you need constructor logic beyond field assignment.
 - Follow standard .NET naming conventions (PascalCase for public members, camelCase for locals).
 - Prefer `ILogger<T>` for all logging — logs are exported via OpenTelemetry.
 - Use dependency injection throughout. Register services in `Program.cs`.
