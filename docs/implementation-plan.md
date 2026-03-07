@@ -12,10 +12,11 @@
 | ACME Client        | Certes (ACME v2 library, .NET Standard 2.0)   |
 | TLS Certificates   | Let's Encrypt via DNS-01 challenge            |
 | DNS Management     | Loopia XML-RPC API                            |
-| Config Format      | YAML (YamlDotNet)                             |
+| Config Format      | Standard .NET IConfiguration / Options pattern |
 | Container Runtime  | Docker / Docker Compose                       |
 | Observability      | OpenTelemetry SDK → Grafana Cloud (OTLP)      |
 | Host OS            | Linux (directly on public internet)           |
+| Test Framework     | TUnit                                         |
 
 See [ADRs](adr/README.md) for rationale behind each decision.
 
@@ -36,7 +37,7 @@ Internet
 │         │                                            │
 │  ┌──────┴───────────────────────────────────┐       │
 │  │ Route Discovery                           │       │
-│  │  • Static YAML config (primary)           │       │
+│  │  • Static config via IOptionsMonitor      │       │
 │  │  • Docker label watcher (optional)        │       │
 │  └───────────────────────────────────────────┘       │
 │                                                     │
@@ -59,9 +60,10 @@ fennath/
 ├── src/
 │   └── Fennath/
 │       ├── Program.cs
+│       ├── appsettings.json                   # Framework defaults (Logging)
 │       ├── Configuration/
-│       │   ├── FennathConfig.cs              # Strongly-typed config model
-│       │   └── ConfigLoader.cs               # YAML parsing + env var substitution
+│       │   ├── FennathConfig.cs               # Strongly-typed Options model
+│       │   └── FennathConfigValidator.cs      # IValidateOptions cross-field rules
 │       ├── Proxy/
 │       │   ├── YarpConfigurator.cs            # Translates routes → YARP config
 │       │   └── HealthCheckService.cs          # Backend health monitoring
@@ -77,86 +79,90 @@ fennath/
 │       │   └── PublicIpResolver.cs            # External IP detection
 │       ├── Discovery/
 │       │   ├── IRouteDiscovery.cs             # Abstraction for route sources
-│       │   ├── StaticRouteDiscovery.cs        # From YAML config
-│       │   └── DockerRouteDiscovery.cs        # From Docker labels
+│       │   ├── StaticRouteDiscovery.cs        # From IOptionsMonitor<FennathConfig>
+│       │   └── DockerRouteDiscovery.cs        # From Docker labels + events
 │       └── Telemetry/
 │           └── TelemetrySetup.cs              # OTel SDK configuration
 ├── tests/
 │   └── Fennath.Tests/
-│       └── ...
+│       ├── Unit/
+│       │   ├── ConfigValidationTests.cs
+│       │   └── RouteConflictResolutionTests.cs
+│       └── Integration/
+│           └── ProxyRoutingTests.cs
 ├── docs/
 │   ├── adr/                                   # Architecture Decision Records
 │   └── implementation-plan.md                 # This file
-├── Dockerfile
-├── docker-compose.yaml
-├── fennath.yaml.example
+├── appsettings.example.json                   # User config template
+├── Directory.Build.props                      # Central build properties
+├── Directory.Packages.props                   # Central package management
+├── fennath.slnx                               # .NET solution
+├── global.json                                # SDK version + test runner
 └── README.md
 ```
 
 ## Configuration Schema
 
-```yaml
-# fennath.yaml
-domain: example.com
+Configuration uses the standard .NET `IConfiguration` / `IOptions<T>` pattern.
+The `"Fennath"` section in `appsettings.local.json` (or environment variables) is
+bound to `FennathConfig` with `[Required]` DataAnnotations and `IValidateOptions`
+for cross-field validation. See `appsettings.example.json` at the repo root.
 
-dns:
-  provider: loopia
-  loopia:
-    username: user@loopiaapi
-    password: ${LOOPIA_API_PASSWORD}        # env var substitution
-  publicIpCheckIntervalSeconds: 300
-
-certificates:
-  email: admin@example.com
-  wildcard: true                            # default wildcard cert
-  staging: false                            # true = Let's Encrypt staging
-  storagePath: /data/certs
-
-routes:
-  - subdomain: grafana
-    backend: http://localhost:3000
-    healthCheck:
-      path: /api/health
-      intervalSeconds: 30
-
-  - subdomain: git
-    backend: http://192.168.1.50:3000
-
-  - subdomain: api
-    backend: http://localhost:8080
-    certificate:
-      mode: individual                      # per-subdomain cert override
-
-docker:
-  enabled: true
-  socketPath: /var/run/docker.sock
-
-telemetry:
-  endpoint: https://otlp-gateway-prod-xx.grafana.net/otlp
-  protocol: grpc
-  headers:
-    Authorization: "Basic ${OTEL_AUTH_HEADER}"
-  serviceName: fennath
-
-server:
-  httpsPort: 443
-  httpPort: 80
-  httpToHttpsRedirect: true
+```json
+{
+  "Fennath": {
+    "Domain": "example.com",
+    "Dns": {
+      "Provider": "loopia",
+      "Loopia": { "Username": "user@loopiaapi", "Password": "" },
+      "PublicIpCheckIntervalSeconds": 300
+    },
+    "Certificates": {
+      "Email": "admin@example.com",
+      "Wildcard": true,
+      "Staging": false
+    },
+    "Routes": [
+      {
+        "Subdomain": "grafana",
+        "Backend": "http://localhost:3000",
+        "HealthCheck": { "Path": "/api/health", "IntervalSeconds": 30 }
+      }
+    ],
+    "Docker": { "Enabled": true, "SocketPath": "/var/run/docker.sock" },
+    "Telemetry": {
+      "Endpoint": "https://otlp-gateway-prod-xx.grafana.net/otlp",
+      "Protocol": "grpc",
+      "ServiceName": "fennath"
+    },
+    "Server": {
+      "HttpsPort": 443,
+      "HttpPort": 80,
+      "HttpToHttpsRedirect": true
+    }
+  }
+}
 ```
+
+Sensitive values use environment variables: `Fennath__Dns__Loopia__Password=secret`.
 
 ## Implementation Phases
 
-### Phase 1: Foundation
+### Phase 1: Foundation ✅ (in progress — health checks remaining)
 **Goal:** A working HTTP reverse proxy with static config.
 
-- [ ] Project scaffolding — .NET 10 solution, NuGet packages (YARP, YamlDotNet)
-- [ ] Configuration model — strongly-typed C# classes for `fennath.yaml`
-- [ ] YAML config loader with environment variable substitution
-- [ ] YARP configurator — translate `FennathConfig.Routes` → YARP `RouteConfig`/`ClusterConfig`
-- [ ] Basic HTTP reverse proxy (no TLS) with static routes
+- [x] Project scaffolding — .NET 10 solution, Directory.Build.props, central package management
+- [x] Configuration model — strongly-typed Options classes with DataAnnotations + IValidateOptions
+- [x] IConfiguration / Options pattern with env var support (replaced YAML)
+- [x] YARP configurator — translate routes → YARP RouteConfig/ClusterConfig
+- [x] Route discovery abstraction + static config implementation with IOptionsMonitor hot-reload
+- [x] Route aggregator with conflict resolution (static wins over docker)
+- [x] Basic HTTP reverse proxy with static routes
+- [x] Integration tests — real HTTP through YARP with TestServer
+- [x] Unit tests — config validation, route conflict resolution
 - [ ] Backend health checks
 
-**Deliverable:** `dotnet run` forwards HTTP requests to backends based on `fennath.yaml`.
+**Deliverable:** `dotnet run` forwards HTTP requests to backends based on configuration.
 
 ### Phase 2: TLS & Certificates
 **Goal:** HTTPS with automatic Let's Encrypt wildcard cert.
@@ -185,7 +191,7 @@ server:
 ### Phase 4: Docker Discovery
 **Goal:** Auto-register routes from Docker container labels.
 
-- [ ] Docker socket watcher for container start/stop events
+- [ ] Docker socket client — list running containers on startup + subscribe to events
 - [ ] `fennath.*` label parsing
 - [ ] Dynamic route registration/deregistration in YARP
 - [ ] Conflict resolution (static config wins)
@@ -207,11 +213,9 @@ server:
 **Goal:** Production-ready deployment.
 
 - [ ] HTTP → HTTPS redirect
-- [ ] Config file hot-reload (watch for changes, update YARP routes)
 - [ ] Graceful shutdown (drain connections)
 - [ ] Dockerfile (multi-stage build, minimal image)
 - [ ] `docker-compose.yaml` for deployment
-- [ ] `fennath.yaml.example` with documented options
 - [ ] README.md with setup guide
 
 **Deliverable:** `docker compose up` deploys a fully functional Fennath instance.

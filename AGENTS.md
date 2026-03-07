@@ -17,14 +17,14 @@ See [README.md](README.md) for a human-oriented overview and
 | `AGENTS.md` | This file — agent guidance and expectations |
 | `docs/implementation-plan.md` | Phased implementation plan with deliverables |
 | `docs/adr/` | Architecture Decision Records — **read these before making design changes** |
-| `fennath.yaml.example` | Reference configuration (once created) |
+| `appsettings.example.json` | Reference configuration — copy to appsettings.local.json |
 
 ## Repository Layout
 
 ```
 fennath/
 ├── src/Fennath/              # Main application source
-│   ├── Configuration/        # YAML config model and loading
+│   ├── Configuration/        # Options-pattern config model and validation
 │   ├── Proxy/                # YARP integration and health checks
 │   ├── Certificates/         # ACME/Let's Encrypt cert management
 │   ├── Dns/                  # Loopia XML-RPC DNS provider
@@ -55,10 +55,12 @@ fennath/
 - Keep classes focused — one responsibility per class.
 
 ### Configuration
-- All user-facing configuration goes through `fennath.yaml`, parsed into strongly-typed
-  `FennathConfig` classes.
-- Sensitive values must use environment variable substitution (`${VAR_NAME}`), never hardcoded.
-- Config changes should be hot-reloadable where possible (no restart required).
+- Configuration uses the standard .NET `IConfiguration` / `IOptions<T>` pattern,
+  bound from the `"Fennath"` section in `appsettings.json` (or environment variables,
+  command-line args, etc.).
+- Sensitive values should use environment variables (`Fennath__Dns__Loopia__Password`),
+  user-secrets, or another secure provider — never hardcoded in config files.
+- Config changes are hot-reloadable via `IOptionsMonitor<FennathConfig>`.
 
 ### Testing
 - Follow ADR-012 strictly: **integration tests over unit tests, behavior over implementation**.
@@ -100,8 +102,31 @@ docker compose up -d
 ### Dependencies
 - **YARP** (`Yarp.ReverseProxy`) — reverse proxy engine
 - **Certes** — ACME v2 client for Let's Encrypt (targets .NET Standard 2.0; see ADR-002)
-- **YamlDotNet** — YAML configuration parsing
 - **OpenTelemetry .NET SDK** — traces, metrics, logs export
+- **TUnit** — test framework
+
+### Package Management
+This project uses **Central Package Management** (`Directory.Packages.props`).
+
+**Always use the `dotnet` CLI to add, remove, or update packages.** Do not hand-edit
+`Directory.Packages.props` or `PackageReference` entries in `.csproj` files.
+
+```bash
+# Add a package to a project (automatically updates Directory.Packages.props)
+dotnet add src/Fennath package SomePackage
+
+# Add a package to the test project
+dotnet add tests/Fennath.Tests package SomeTestPackage
+
+# Update a package version
+dotnet add src/Fennath package SomePackage --version 2.0.0
+
+# List outdated packages
+dotnet list package --outdated
+```
+
+The CLI ensures `Directory.Packages.props` and the project files stay in sync. Manual edits
+risk version mismatches and missing entries.
 
 ## Maintaining This File
 

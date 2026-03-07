@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/Fennath.Tests/Fennath.Tests.csproj" />
+  </Folder>
+  <Project Path="src/Fennath/Fennath.csproj" />
+</Solution>

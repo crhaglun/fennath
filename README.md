@@ -11,15 +11,15 @@ DNS records, and route discovery so your toy projects can stay simple.
 - **Reverse proxy with TLS termination** — backends run plain HTTP, Fennath handles HTTPS
 - **Automatic Let's Encrypt certificates** — wildcard certs via DNS-01 challenge, zero manual renewal
 - **DNS management via Loopia API** — automatic A record updates when your public IP changes
-- **Route discovery** — static YAML config, plus optional Docker label auto-discovery
+- **Route discovery** — static config (appsettings.json), plus optional Docker label auto-discovery
 - **Full observability** — OpenTelemetry traces, metrics, and logs to Grafana Cloud
 
 ## Quick Start
 
 ```bash
 # Clone and configure
-cp fennath.yaml.example fennath.yaml
-# Edit fennath.yaml with your domain, Loopia credentials, and backend services
+cp appsettings.example.json appsettings.local.json
+# Edit appsettings.local.json with your domain, Loopia credentials, and backend services
 
 # Run with Docker Compose
 docker compose up -d
@@ -27,25 +27,26 @@ docker compose up -d
 
 ## Configuration
 
-All configuration lives in `fennath.yaml`. See [`fennath.yaml.example`](fennath.yaml.example)
-for a fully documented template.
+Configuration uses the standard .NET configuration system. Copy
+[`appsettings.example.json`](appsettings.example.json) to `appsettings.local.json`
+(gitignored) and edit for your environment.
 
-```yaml
-domain: example.com
-
-routes:
-  - subdomain: grafana
-    backend: http://localhost:3000
-
-  - subdomain: git
-    backend: http://192.168.1.50:3000
+```json
+{
+  "Fennath": {
+    "Domain": "example.com",
+    "Routes": [
+      { "Subdomain": "grafana", "Backend": "http://localhost:3000" },
+      { "Subdomain": "git", "Backend": "http://192.168.1.50:3000" }
+    ]
+  }
+}
 ```
 
-Sensitive values (API passwords, OTel tokens) use environment variable substitution:
-```yaml
-dns:
-  loopia:
-    password: ${LOOPIA_API_PASSWORD}
+Sensitive values (API passwords, OTel tokens) use environment variables:
+```bash
+export Fennath__Dns__Loopia__Password=your-api-password
+export Fennath__Telemetry__Headers__Authorization="Basic ..."
 ```
 
 ### Docker Label Discovery
