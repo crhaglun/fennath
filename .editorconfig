@@ -19,3 +19,7 @@ trim_trailing_whitespace = false
 
 [Dockerfile]
 indent_size = 4
+
+[*.cs]
+# Prefer primary constructors (C# 12+)
+csharp_style_prefer_primary_constructors = true:warning

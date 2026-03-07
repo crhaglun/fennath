@@ -8,27 +8,18 @@ namespace Fennath.Dns;
 /// Loopia XML-RPC DNS provider. Implements IDnsProvider against
 /// https://api.loopia.se/RPCSERV.
 /// </summary>
-public sealed partial class LoopiaDnsProvider : IDnsProvider
+public sealed partial class LoopiaDnsProvider(
+    HttpClient httpClient,
+    IOptions<FennathConfig> options,
+    ILogger<LoopiaDnsProvider> logger) : IDnsProvider
 {
     private const string ApiUrl = "https://api.loopia.se/RPCSERV";
 
-    private readonly HttpClient _httpClient;
-    private readonly string _username;
-    private readonly string _password;
-    private readonly string _domain;
-    private readonly ILogger<LoopiaDnsProvider> _logger;
-
-    public LoopiaDnsProvider(
-        HttpClient httpClient,
-        IOptions<FennathConfig> options,
-        ILogger<LoopiaDnsProvider> logger)
-    {
-        _httpClient = httpClient;
-        _username = options.Value.Dns.Loopia.Username;
-        _password = options.Value.Dns.Loopia.Password;
-        _domain = options.Value.Domain;
-        _logger = logger;
-    }
+    private readonly HttpClient _httpClient = httpClient;
+    private readonly string _username = options.Value.Dns.Loopia.Username;
+    private readonly string _password = options.Value.Dns.Loopia.Password;
+    private readonly string _domain = options.Value.Domain;
+    private readonly ILogger<LoopiaDnsProvider> _logger = logger;
 
     public async Task UpsertARecordAsync(string subdomain, string ipAddress, int ttl = 300, CancellationToken ct = default)
     {

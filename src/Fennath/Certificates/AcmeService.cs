@@ -12,24 +12,16 @@ namespace Fennath.Certificates;
 /// Uses DNS-01 challenges through IDnsProvider.
 /// Supports both Let's Encrypt production and staging.
 /// </summary>
-public sealed partial class AcmeService
+public sealed partial class AcmeService(
+    IDnsProvider dnsProvider,
+    CertificateStore certStore,
+    IOptions<FennathConfig> options,
+    ILogger<AcmeService> logger)
 {
-    private readonly IDnsProvider _dnsProvider;
-    private readonly CertificateStore _certStore;
-    private readonly IOptions<FennathConfig> _options;
-    private readonly ILogger<AcmeService> _logger;
-
-    public AcmeService(
-        IDnsProvider dnsProvider,
-        CertificateStore certStore,
-        IOptions<FennathConfig> options,
-        ILogger<AcmeService> logger)
-    {
-        _dnsProvider = dnsProvider;
-        _certStore = certStore;
-        _options = options;
-        _logger = logger;
-    }
+    private readonly IDnsProvider _dnsProvider = dnsProvider;
+    private readonly CertificateStore _certStore = certStore;
+    private readonly IOptions<FennathConfig> _options = options;
+    private readonly ILogger<AcmeService> _logger = logger;
 
     /// <summary>
     /// Provisions a certificate for the given hostnames via ACME DNS-01 challenge.

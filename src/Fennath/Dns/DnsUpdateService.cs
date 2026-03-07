@@ -9,28 +9,19 @@ namespace Fennath.Dns;
 /// DNS A records via IDnsProvider when the IP changes.
 /// Also manages subdomain records for all configured routes.
 /// </summary>
-public sealed partial class DnsUpdateService : BackgroundService
+public sealed partial class DnsUpdateService(
+    PublicIpResolver ipResolver,
+    IDnsProvider dnsProvider,
+    IOptionsMonitor<FennathConfig> optionsMonitor,
+    FennathMetrics metrics,
+    ILogger<DnsUpdateService> logger) : BackgroundService
 {
-    private readonly PublicIpResolver _ipResolver;
-    private readonly IDnsProvider _dnsProvider;
-    private readonly IOptionsMonitor<FennathConfig> _optionsMonitor;
-    private readonly FennathMetrics _metrics;
-    private readonly ILogger<DnsUpdateService> _logger;
+    private readonly PublicIpResolver _ipResolver = ipResolver;
+    private readonly IDnsProvider _dnsProvider = dnsProvider;
+    private readonly IOptionsMonitor<FennathConfig> _optionsMonitor = optionsMonitor;
+    private readonly FennathMetrics _metrics = metrics;
+    private readonly ILogger<DnsUpdateService> _logger = logger;
     private string? _lastKnownIp;
-
-    public DnsUpdateService(
-        PublicIpResolver ipResolver,
-        IDnsProvider dnsProvider,
-        IOptionsMonitor<FennathConfig> optionsMonitor,
-        FennathMetrics metrics,
-        ILogger<DnsUpdateService> logger)
-    {
-        _ipResolver = ipResolver;
-        _dnsProvider = dnsProvider;
-        _optionsMonitor = optionsMonitor;
-        _metrics = metrics;
-        _logger = logger;
-    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

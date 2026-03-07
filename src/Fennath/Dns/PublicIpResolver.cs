@@ -7,21 +7,14 @@ namespace Fennath.Dns;
 /// Detects the public IP address by querying external echo services.
 /// Tries multiple services for resilience (per ADR-009).
 /// </summary>
-public sealed partial class PublicIpResolver
+public sealed partial class PublicIpResolver(
+    HttpClient httpClient,
+    IOptions<FennathConfig> options,
+    ILogger<PublicIpResolver> logger)
 {
-    private readonly HttpClient _httpClient;
-    private readonly IReadOnlyList<string> _echoServices;
-    private readonly ILogger<PublicIpResolver> _logger;
-
-    public PublicIpResolver(
-        HttpClient httpClient,
-        IOptions<FennathConfig> options,
-        ILogger<PublicIpResolver> logger)
-    {
-        _httpClient = httpClient;
-        _echoServices = options.Value.Dns.IpEchoServices;
-        _logger = logger;
-    }
+    private readonly HttpClient _httpClient = httpClient;
+    private readonly IReadOnlyList<string> _echoServices = options.Value.Dns.IpEchoServices;
+    private readonly ILogger<PublicIpResolver> _logger = logger;
 
     /// <summary>
     /// Queries echo services until one responds with a valid IP.

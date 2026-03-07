@@ -95,6 +95,9 @@ dotnet run --project src/Fennath/
 # Run tests
 dotnet test
 
+# Format code (always run before committing)
+dotnet format
+
 # Docker build
 docker build -t fennath -f docker/Dockerfile .
 

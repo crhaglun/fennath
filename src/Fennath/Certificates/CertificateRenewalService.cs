@@ -8,30 +8,21 @@ namespace Fennath.Certificates;
 /// Background service that ensures certificates are provisioned on startup
 /// and renewed before expiry. Checks daily for certificates expiring within 30 days.
 /// </summary>
-public sealed partial class CertificateRenewalService : BackgroundService
+public sealed partial class CertificateRenewalService(
+    AcmeService acmeService,
+    CertificateStore certStore,
+    IOptionsMonitor<FennathConfig> optionsMonitor,
+    FennathMetrics metrics,
+    ILogger<CertificateRenewalService> logger) : BackgroundService
 {
     private static readonly TimeSpan RenewalThreshold = TimeSpan.FromDays(30);
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(24);
 
-    private readonly AcmeService _acmeService;
-    private readonly CertificateStore _certStore;
-    private readonly IOptionsMonitor<FennathConfig> _optionsMonitor;
-    private readonly FennathMetrics _metrics;
-    private readonly ILogger<CertificateRenewalService> _logger;
-
-    public CertificateRenewalService(
-        AcmeService acmeService,
-        CertificateStore certStore,
-        IOptionsMonitor<FennathConfig> optionsMonitor,
-        FennathMetrics metrics,
-        ILogger<CertificateRenewalService> logger)
-    {
-        _acmeService = acmeService;
-        _certStore = certStore;
-        _optionsMonitor = optionsMonitor;
-        _metrics = metrics;
-        _logger = logger;
-    }
+    private readonly AcmeService _acmeService = acmeService;
+    private readonly CertificateStore _certStore = certStore;
+    private readonly IOptionsMonitor<FennathConfig> _optionsMonitor = optionsMonitor;
+    private readonly FennathMetrics _metrics = metrics;
+    private readonly ILogger<CertificateRenewalService> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
