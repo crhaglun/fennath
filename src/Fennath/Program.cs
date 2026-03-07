@@ -55,11 +55,6 @@ app.MapReverseProxy(proxyPipeline =>
     proxyPipeline.UseMiddleware<Fennath.Telemetry.ProxyMetricsMiddleware>();
 });
 
-if (config.Certificates.Staging)
-{
-    Log.StagingModeWarning(app.Logger);
-}
-
 Log.Starting(app.Logger, config.Domain);
 
 // Ensure a valid certificate exists before accepting traffic.
@@ -76,9 +71,6 @@ return 0;
 
 internal static partial class Log
 {
-    [LoggerMessage(EventId = 1300, Level = LogLevel.Warning, Message = "Running with Let's Encrypt STAGING certificates (not browser-trusted)")]
-    public static partial void StagingModeWarning(ILogger logger);
-
     [LoggerMessage(EventId = 1301, Level = LogLevel.Information, Message = "Fennath starting for domain {domain}")]
     public static partial void Starting(ILogger logger, string domain);
 

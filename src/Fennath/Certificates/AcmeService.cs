@@ -32,6 +32,9 @@ public sealed partial class AcmeService(
 
         LogProvisioningStarted(Logger, hostnames, acmeServer);
 
+        if (config.Certificates.Staging)
+            LogStagingWarning(Logger);
+
         var acme = await GetOrCreateAcmeContextAsync(acmeServer, config);
 
         var order = await acme.NewOrder(hostnames.ToList());
@@ -161,4 +164,7 @@ public sealed partial class AcmeService(
 
     [LoggerMessage(EventId = 1106, Level = LogLevel.Information, Message = "Created new ACME account, key saved to {path}")]
     private static partial void LogAccountKeyCreated(ILogger logger, string path);
+
+    [LoggerMessage(EventId = 1107, Level = LogLevel.Warning, Message = "Using Let's Encrypt STAGING — certificate will NOT be browser-trusted")]
+    private static partial void LogStagingWarning(ILogger logger);
 }
