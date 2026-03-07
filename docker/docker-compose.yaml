@@ -8,6 +8,9 @@ services:
     read_only: true
     security_opt:
       - no-new-privileges:true
+    # Grant access to the Docker socket (host docker group GID)
+    group_add:
+      - ${DOCKER_GID:-999}
     ports:
       - "80:8080"
       - "443:8443"
