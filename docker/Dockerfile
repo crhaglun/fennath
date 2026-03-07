@@ -14,10 +14,12 @@ RUN dotnet publish src/Fennath/Fennath.csproj -c Release -o /app --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-RUN mkdir -p /data/certs
+RUN mkdir -p /data/certs && chown $APP_UID:$APP_UID /data/certs
 
 COPY --from=build /app .
 
-EXPOSE 80 443
+USER $APP_UID
+
+EXPOSE 8080 8443
 
 ENTRYPOINT ["dotnet", "Fennath.dll"]
