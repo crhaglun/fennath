@@ -44,7 +44,9 @@ public sealed partial class CertificateStore : IDisposable
             _certificate = certificate;
             SaveToDisk(certificate);
             if (old is not null && old != certificate)
+            {
                 old.Dispose();
+            }
         }
 
         LogCertificateStored(_logger, _wildcardHost, certificate.NotAfter);
@@ -58,7 +60,10 @@ public sealed partial class CertificateStore : IDisposable
     private void LoadFromDisk()
     {
         var pfxPath = Path.Combine(_storagePath, "wildcard.pfx");
-        if (!File.Exists(pfxPath)) return;
+        if (!File.Exists(pfxPath))
+        {
+            return;
+        }
 
         try
         {

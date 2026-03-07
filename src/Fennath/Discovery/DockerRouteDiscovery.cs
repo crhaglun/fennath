@@ -55,9 +55,15 @@ public sealed partial class DockerRouteDiscovery(
                 if (HasChanges(previous, current, out var added, out var removed))
                 {
                     foreach (var route in added)
+                    {
                         LogRouteAdded(Logger, route.Subdomain, route.BackendUrl, route.Source);
+                    }
+
                     foreach (var route in removed)
+                    {
                         LogRouteRemoved(Logger, route.Subdomain, route.Source);
+                    }
+
                     RoutesChanged?.Invoke();
                 }
             }

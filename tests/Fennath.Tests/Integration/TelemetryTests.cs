@@ -46,12 +46,16 @@ public class TelemetryTests : IAsyncDisposable
         listener.SetMeasurementEventCallback<long>((instrument, measurement, tags, state) =>
         {
             if (instrument.Name == "fennath.requests.total")
+            {
                 requestsRecorded.Add(measurement);
+            }
         });
         listener.SetMeasurementEventCallback<double>((instrument, measurement, tags, state) =>
         {
             if (instrument.Name == "fennath.request.duration")
+            {
                 durationsRecorded.Add(measurement);
+            }
         });
         listener.Start();
 
@@ -82,14 +86,21 @@ public class TelemetryTests : IAsyncDisposable
         listener.InstrumentPublished = (instrument, meterListener) =>
         {
             if (instrument.Meter.Name == FennathMetrics.MeterName)
+            {
                 meterListener.EnableMeasurementEvents(instrument);
+            }
         };
         listener.SetMeasurementEventCallback<long>((instrument, measurement, tags, state) =>
         {
             if (instrument.Name == "fennath.dns.update.total")
+            {
                 dnsUpdates.Add(measurement);
+            }
+
             if (instrument.Name == "fennath.ip.changes.total")
+            {
                 ipChanges.Add(measurement);
+            }
         });
         listener.Start();
 
@@ -113,12 +124,16 @@ public class TelemetryTests : IAsyncDisposable
         listener.InstrumentPublished = (instrument, meterListener) =>
         {
             if (instrument.Meter.Name == FennathMetrics.MeterName)
+            {
                 meterListener.EnableMeasurementEvents(instrument);
+            }
         };
         listener.SetMeasurementEventCallback<double>((instrument, measurement, tags, state) =>
         {
             if (instrument.Name == "fennath.cert.expiry_days")
+            {
                 expiryValues.Add(measurement);
+            }
         });
         listener.Start();
 

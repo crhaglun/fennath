@@ -33,7 +33,9 @@ public sealed partial class AcmeService(
         LogProvisioningStarted(Logger, hostnames, acmeServer);
 
         if (config.Certificates.Staging)
+        {
             LogStagingWarning(Logger);
+        }
 
         var acme = await GetOrCreateAcmeContextAsync(acmeServer, config);
 
@@ -63,10 +65,16 @@ public sealed partial class AcmeService(
             {
                 var resource = await challenge.Resource();
                 if (resource.Status == ChallengeStatus.Valid)
+                {
                     break;
+                }
+
                 if (resource.Status == ChallengeStatus.Invalid)
+                {
                     throw new InvalidOperationException(
                         $"ACME challenge failed for {domain}: {resource.Error?.Detail}");
+                }
+
                 await Task.Delay(TimeSpan.FromSeconds(5), ct);
             }
 

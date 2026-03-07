@@ -42,7 +42,9 @@ public static class FennathTestHost
                     services.AddHealthChecks();
 
                     if (withMetrics)
+                    {
                         services.AddSingleton<FennathMetrics>();
+                    }
 
                     var yarpRoutes = routes.Select(r => new RouteConfig
                     {
@@ -74,9 +76,13 @@ public static class FennathTestHost
                     {
                         endpoints.MapHealthChecks("/healthz");
                         if (withMetrics)
+                        {
                             endpoints.MapReverseProxy(p => p.UseMiddleware<ProxyMetricsMiddleware>());
+                        }
                         else
+                        {
                             endpoints.MapReverseProxy();
+                        }
                     });
                 });
             })

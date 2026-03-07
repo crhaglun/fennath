@@ -23,3 +23,5 @@ indent_size = 4
 [*.cs]
 # Prefer primary constructors (C# 12+)
 csharp_style_prefer_primary_constructors = true:warning
+# Require braces for all control statements
+csharp_prefer_braces = true:warning

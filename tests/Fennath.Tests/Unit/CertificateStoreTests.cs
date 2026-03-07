@@ -22,7 +22,10 @@ public class CertificateStoreTests : IDisposable
     {
         _store.Dispose();
         if (Directory.Exists(_tempDir))
+        {
             Directory.Delete(_tempDir, recursive: true);
+        }
+
         GC.SuppressFinalize(this);
     }
 

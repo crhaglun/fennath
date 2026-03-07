@@ -210,7 +210,9 @@ public sealed partial class LoopiaDnsProvider(
                     m => m.Element("value")!);
 
             if (!members.TryGetValue("type", out var typeEl))
+            {
                 continue;
+            }
 
             records.Add(new ZoneRecord
             {
@@ -227,13 +229,21 @@ public sealed partial class LoopiaDnsProvider(
 
     private static string GetStringValue(XElement? valueEl)
     {
-        if (valueEl is null) return "";
+        if (valueEl is null)
+        {
+            return "";
+        }
+
         return valueEl.Element("string")?.Value ?? valueEl.Value;
     }
 
     private static int GetIntValue(XElement? valueEl)
     {
-        if (valueEl is null) return 0;
+        if (valueEl is null)
+        {
+            return 0;
+        }
+
         var text = valueEl.Element("int")?.Value ?? valueEl.Element("i4")?.Value ?? valueEl.Value;
         return int.TryParse(text, out var result) ? result : 0;
     }
