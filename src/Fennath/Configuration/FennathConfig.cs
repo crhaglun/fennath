@@ -70,7 +70,6 @@ public sealed class RouteCertificateConfig
 
 public sealed class DockerConfig
 {
-    public bool Enabled { get; set; }
     public string SocketPath { get; set; } = "/var/run/docker.sock";
 }
 

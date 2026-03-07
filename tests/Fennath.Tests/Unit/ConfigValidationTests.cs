@@ -127,7 +127,6 @@ public class ConfigValidationTests
         await Assert.That(config.Server.HttpToHttpsRedirect).IsTrue();
         await Assert.That(config.Certificates.Wildcard).IsTrue();
         await Assert.That(config.Certificates.Staging).IsFalse();
-        await Assert.That(config.Docker.Enabled).IsFalse();
         await Assert.That(config.Dns.PublicIpCheckIntervalSeconds).IsEqualTo(300);
         await Assert.That(config.Dns.IpEchoServices).Count().IsEqualTo(3);
     }

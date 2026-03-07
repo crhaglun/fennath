@@ -139,7 +139,11 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
         if (labels is null) return;
 
         var newRoutes = ParseContainerRoutes(containerId, labels);
-        if (newRoutes.Count == 0) return;
+        if (newRoutes.Count == 0)
+        {
+            LogContainerIgnored(_logger, containerId);
+            return;
+        }
 
         lock (_lock)
         {
@@ -148,19 +152,29 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
             _routes = updated;
         }
 
+        foreach (var route in newRoutes)
+        {
+            LogRouteAdded(_logger, route.Subdomain, route.BackendUrl, containerId);
+        }
+
         RoutesChanged?.Invoke();
     }
 
     private void HandleContainerStop(string containerId)
     {
         var source = $"docker:{containerId}";
+        List<DiscoveredRoute> removed;
 
         lock (_lock)
         {
-            var before = _routes.Count;
+            removed = _routes.Where(r => r.Source == source).ToList();
+            if (removed.Count == 0) return;
             _routes = _routes.Where(r => r.Source != source).ToList();
+        }
 
-            if (_routes.Count == before) return;
+        foreach (var route in removed)
+        {
+            LogRouteRemoved(_logger, route.Subdomain, containerId);
         }
 
         RoutesChanged?.Invoke();
@@ -224,11 +238,20 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
     [LoggerMessage(Level = LogLevel.Information, Message = "Docker route discovery started, found {count} routes from running containers")]
     private static partial void LogStarted(ILogger logger, int count);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Container {containerId} started")]
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Container {containerId} started")]
     private static partial void LogContainerStarted(ILogger logger, string containerId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Container {containerId} stopped")]
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Container {containerId} stopped")]
     private static partial void LogContainerStopped(ILogger logger, string containerId);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Container {containerId} has no fennath labels, ignoring")]
+    private static partial void LogContainerIgnored(ILogger logger, string containerId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Route added: {subdomain} → {backend} (container {containerId})")]
+    private static partial void LogRouteAdded(ILogger logger, string subdomain, string backend, string containerId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Route removed: {subdomain} (container {containerId})")]
+    private static partial void LogRouteRemoved(ILogger logger, string subdomain, string containerId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Docker event listener failed, dynamic route updates will stop")]
     private static partial void LogEventListenerFailed(ILogger logger, Exception ex);

@@ -94,7 +94,7 @@ export OTEL_SERVICE_NAME=fennath
 
 ### Docker Label Discovery
 
-When `Docker.Enabled` is `true`, Fennath auto-discovers routes from running containers:
+Fennath auto-discovers routes from running Docker containers:
 
 ```bash
 docker run -d \

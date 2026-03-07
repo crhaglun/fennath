@@ -28,13 +28,9 @@ public static class YarpConfigurator
         // Route discovery — static config (always)
         services.AddSingleton<IRouteDiscovery, StaticRouteDiscovery>();
 
-        // Route discovery — Docker labels (when enabled)
-        var dockerEnabled = configuration.GetValue<bool>($"{FennathConfig.SectionName}:Docker:Enabled");
-        if (dockerEnabled)
-        {
-            services.AddSingleton<DockerRouteDiscovery>();
-            services.AddSingleton<IRouteDiscovery>(sp => sp.GetRequiredService<DockerRouteDiscovery>());
-        }
+        // Route discovery — Docker labels
+        services.AddSingleton<DockerRouteDiscovery>();
+        services.AddSingleton<IRouteDiscovery>(sp => sp.GetRequiredService<DockerRouteDiscovery>());
 
         services.AddSingleton(sp =>
         {

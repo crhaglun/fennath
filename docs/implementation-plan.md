@@ -134,7 +134,7 @@ for cross-field validation. See `appsettings.example.json` at the repo root.
         "HealthCheck": { "Path": "/api/health", "IntervalSeconds": 30 }
       }
     ],
-    "Docker": { "Enabled": true, "SocketPath": "/var/run/docker.sock" },
+    "Docker": { "SocketPath": "/var/run/docker.sock" },
     "Server": {
       "HttpsPort": 443,
       "HttpPort": 80,
@@ -194,7 +194,6 @@ Sensitive values use environment variables: `Fennath__Dns__Loopia__Password=secr
 - [x] `fennath.*` label parsing with comma-separated subdomain support (e.g. `fennath.subdomain=@,www`)
 - [x] Dynamic route registration/deregistration in YARP
 - [x] Conflict resolution (static config wins)
-- [x] Conditional registration (only when `Docker.Enabled` is true)
 
 **Labels:**
 ```

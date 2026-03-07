@@ -61,11 +61,8 @@ if (config.Server.HttpToHttpsRedirect)
 }
 
 // Start Docker discovery (async init: snapshot running containers + subscribe to events)
-var dockerDiscovery = app.Services.GetService<DockerRouteDiscovery>();
-if (dockerDiscovery is not null)
-{
-    await dockerDiscovery.StartAsync(CancellationToken.None);
-}
+var dockerDiscovery = app.Services.GetRequiredService<DockerRouteDiscovery>();
+await dockerDiscovery.StartAsync(CancellationToken.None);
 
 // Eagerly resolve RouteAggregator to trigger initial route loading
 _ = app.Services.GetRequiredService<RouteAggregator>();
