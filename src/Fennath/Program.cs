@@ -14,7 +14,6 @@ builder.Services
     .BindConfiguration(FennathConfig.SectionName)
     .ValidateDataAnnotations()
     .ValidateOnStart();
-builder.Services.AddSingleton<IValidateOptions<FennathConfig>, FennathConfigValidator>();
 
 // Graceful shutdown — allow in-flight requests to drain before terminating
 builder.Services.Configure<HostOptions>(opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(30));
