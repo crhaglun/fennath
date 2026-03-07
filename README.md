@@ -1,4 +1,6 @@
-# Fennath
+<p align="center">
+  <img src="assets/fennath-tengwar.svg" alt="Fennath in Tengwar" height="80">
+</p>
 
 > *"Doorways"* in Sindarin — a TLS-terminating reverse proxy for your homelab.
 
