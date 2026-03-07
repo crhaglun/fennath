@@ -19,58 +19,74 @@ namespace Fennath.Discovery;
 ///   <item><c>fennath.healthcheck.interval</c> — optional; health check interval in seconds.</item>
 /// </list>
 /// </summary>
-public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDisposable
+public sealed partial class DockerRouteDiscovery(
+    IOptions<FennathConfig> options,
+    ILogger<DockerRouteDiscovery> logger) : BackgroundService, IRouteDiscovery
 {
     private const string SubdomainLabel = "fennath.subdomain";
     private const string BackendLabel = "fennath.backend";
     private const string HealthCheckPathLabel = "fennath.healthcheck.path";
     private const string HealthCheckIntervalLabel = "fennath.healthcheck.interval";
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(15);
 
-    private readonly DockerClient _client;
-    private readonly ILogger<DockerRouteDiscovery> _logger;
-    private readonly CancellationTokenSource _cts = new();
+    private readonly DockerClient _client = new DockerClientConfiguration(
+        new Uri(options.Value.Docker.SocketPath.StartsWith('/')
+            ? $"unix://{options.Value.Docker.SocketPath}"
+            : options.Value.Docker.SocketPath))
+        .CreateClient();
+
     private readonly Lock _lock = new();
     private List<DiscoveredRoute> _routes = [];
-    private Task? _pollTask;
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(15);
 
     public event Action? RoutesChanged;
 
-    public DockerRouteDiscovery(
-        IOptions<FennathConfig> options,
-        ILogger<DockerRouteDiscovery> logger)
-    {
-        var config = options.Value;
-        var uri = new Uri(config.Docker.SocketPath.StartsWith('/')
-            ? $"unix://{config.Docker.SocketPath}"
-            : config.Docker.SocketPath);
-        _client = new DockerClientConfiguration(uri).CreateClient();
-        _logger = logger;
-    }
+    public IReadOnlyList<DiscoveredRoute> GetRoutes() => _routes;
 
-    /// <summary>
-    /// Queries current containers and starts the polling loop.
-    /// Called after DI construction to allow async initialization.
-    /// </summary>
-    public async Task StartAsync(CancellationToken ct)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
         {
-            await RefreshFromRunningContainersAsync(ct);
-            _pollTask = PollForChangesAsync(_cts.Token);
-            LogStarted(_logger, _routes.Count);
+            await RefreshFromRunningContainersAsync(stoppingToken);
+            LogStarted(logger, _routes.Count);
             foreach (var route in _routes)
             {
-                LogRouteAdded(_logger, route.Subdomain, route.BackendUrl, route.Source);
+                LogRouteAdded(logger, route.Subdomain, route.BackendUrl, route.Source);
             }
+
+            RoutesChanged?.Invoke();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogStartFailed(_logger, ex);
+            LogStartFailed(logger, ex);
+            return;
+        }
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(PollInterval, stoppingToken);
+
+                var previous = _routes;
+                await RefreshFromRunningContainersAsync(stoppingToken);
+                var current = _routes;
+
+                if (HasChanges(previous, current))
+                {
+                    LogChanges(previous, current);
+                    RoutesChanged?.Invoke();
+                }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                LogPollFailed(logger, ex);
+            }
         }
     }
-
-    public IReadOnlyList<DiscoveredRoute> GetRoutes() => _routes;
 
     private async Task RefreshFromRunningContainersAsync(CancellationToken ct)
     {
@@ -95,35 +111,6 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
         }
     }
 
-    private async Task PollForChangesAsync(CancellationToken ct)
-    {
-        while (!ct.IsCancellationRequested)
-        {
-            try
-            {
-                await Task.Delay(PollInterval, ct);
-
-                var previous = _routes;
-                await RefreshFromRunningContainersAsync(ct);
-                var current = _routes;
-
-                if (HasChanges(previous, current))
-                {
-                    LogChanges(previous, current);
-                    RoutesChanged?.Invoke();
-                }
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-                return;
-            }
-            catch (Exception ex)
-            {
-                LogPollFailed(_logger, ex);
-            }
-        }
-    }
-
     private static bool HasChanges(IReadOnlyList<DiscoveredRoute> previous, IReadOnlyList<DiscoveredRoute> current) =>
         !previous.ToHashSet().SetEquals(current);
 
@@ -134,12 +121,12 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
 
         foreach (var route in currSet.Except(prevSet))
         {
-            LogRouteAdded(_logger, route.Subdomain, route.BackendUrl, route.Source);
+            LogRouteAdded(logger, route.Subdomain, route.BackendUrl, route.Source);
         }
 
         foreach (var route in prevSet.Except(currSet))
         {
-            LogRouteRemoved(_logger, route.Subdomain, route.Source);
+            LogRouteRemoved(logger, route.Subdomain, route.Source);
         }
     }
 
@@ -178,18 +165,10 @@ public sealed partial class DockerRouteDiscovery : IRouteDiscovery, IAsyncDispos
             .ToList();
     }
 
-    public async ValueTask DisposeAsync()
+    public override void Dispose()
     {
-        await _cts.CancelAsync();
-
-        if (_pollTask is not null)
-        {
-            try { await _pollTask; }
-            catch (OperationCanceledException) { }
-        }
-
-        _cts.Dispose();
         _client.Dispose();
+        base.Dispose();
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Docker route discovery started, found {count} routes from running containers")]

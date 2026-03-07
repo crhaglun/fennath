@@ -31,6 +31,7 @@ public static class YarpConfigurator
         // Route discovery — Docker labels
         services.AddSingleton<DockerRouteDiscovery>();
         services.AddSingleton<IRouteDiscovery>(sp => sp.GetRequiredService<DockerRouteDiscovery>());
+        services.AddHostedService(sp => sp.GetRequiredService<DockerRouteDiscovery>());
 
         services.AddSingleton(sp =>
         {

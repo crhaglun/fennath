@@ -60,10 +60,6 @@ if (config.Server.HttpToHttpsRedirect)
     app.UseHttpsRedirection();
 }
 
-// Start Docker discovery (async init: snapshot running containers + subscribe to events)
-var dockerDiscovery = app.Services.GetRequiredService<DockerRouteDiscovery>();
-await dockerDiscovery.StartAsync(CancellationToken.None);
-
 // Eagerly resolve RouteAggregator to trigger initial route loading
 _ = app.Services.GetRequiredService<RouteAggregator>();
 
