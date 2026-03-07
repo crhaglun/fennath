@@ -95,6 +95,9 @@ fennath/
 ├── docs/
 │   ├── adr/                                   # Architecture Decision Records
 │   └── implementation-plan.md                 # This file
+├── docker/
+│   ├── Dockerfile                             # Container build
+│   └── docker-compose.yaml                    # Deployment descriptor
 ├── appsettings.example.json                   # User config template
 ├── Directory.Build.props                      # Central build properties
 ├── Directory.Packages.props                   # Central package management

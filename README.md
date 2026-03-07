@@ -39,8 +39,8 @@ variables instead of the config file.
 ### 2. Deploy with Docker Compose
 
 ```bash
-# Edit docker-compose.yaml environment section with your values, or create a .env file
-docker compose up -d
+# Edit docker/docker-compose.yaml environment section with your values, or create a .env file
+docker compose -f docker/docker-compose.yaml up -d
 ```
 
 Fennath will:

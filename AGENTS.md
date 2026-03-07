@@ -32,8 +32,9 @@ fennath/
 │   └── Telemetry/            # OpenTelemetry setup and custom metrics
 ├── tests/Fennath.Tests/      # Unit and integration tests
 ├── docs/                     # Design documents and ADRs
-├── Dockerfile                # Container build
-└── docker-compose.yaml       # Deployment descriptor
+├── docker/
+│   ├── Dockerfile                # Container build
+│   └── docker-compose.yaml       # Deployment descriptor
 ```
 
 ## Conventions and Expectations
@@ -93,10 +94,10 @@ dotnet run --project src/Fennath/
 dotnet test
 
 # Docker build
-docker build -t fennath .
+docker build -t fennath -f docker/Dockerfile .
 
 # Docker Compose deployment
-docker compose up -d
+docker compose -f docker/docker-compose.yaml up -d
 ```
 
 ### Dependencies

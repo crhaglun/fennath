@@ -1,6 +1,8 @@
 services:
   fennath:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: fennath
     restart: unless-stopped
     ports:
