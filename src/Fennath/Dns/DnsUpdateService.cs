@@ -19,15 +19,12 @@ public sealed partial class DnsUpdateService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Initial update on startup
-        await UpdateDnsAsync(stoppingToken);
-
-        while (!stoppingToken.IsCancellationRequested)
+        do
         {
+            await UpdateDnsAsync(stoppingToken);
             var interval = OptionsMonitor.CurrentValue.Dns.PublicIpCheckIntervalSeconds;
             await Task.Delay(TimeSpan.FromSeconds(interval), stoppingToken);
-            await UpdateDnsAsync(stoppingToken);
-        }
+        } while (!stoppingToken.IsCancellationRequested);
     }
 
     private async Task UpdateDnsAsync(CancellationToken ct)

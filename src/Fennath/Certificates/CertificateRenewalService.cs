@@ -20,14 +20,11 @@ public sealed partial class CertificateRenewalService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Initial provisioning
-        await EnsureCertificatesAsync(stoppingToken);
-
-        while (!stoppingToken.IsCancellationRequested)
+        do
         {
-            await Task.Delay(CheckInterval, stoppingToken);
             await EnsureCertificatesAsync(stoppingToken);
-        }
+            await Task.Delay(CheckInterval, stoppingToken);
+        } while (!stoppingToken.IsCancellationRequested);
     }
 
     private async Task EnsureCertificatesAsync(CancellationToken ct)

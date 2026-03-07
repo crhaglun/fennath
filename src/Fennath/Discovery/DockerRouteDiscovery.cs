@@ -44,29 +44,10 @@ public sealed partial class DockerRouteDiscovery(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        try
-        {
-            await RefreshFromRunningContainersAsync(stoppingToken);
-            LogStarted(Logger, _routes.Count);
-            foreach (var route in _routes)
-            {
-                LogRouteAdded(Logger, route.Subdomain, route.BackendUrl, route.Source);
-            }
-
-            RoutesChanged?.Invoke();
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            LogStartFailed(Logger, ex);
-            return;
-        }
-
-        while (!stoppingToken.IsCancellationRequested)
+        do
         {
             try
             {
-                await Task.Delay(PollInterval, stoppingToken);
-
                 var previous = _routes;
                 await RefreshFromRunningContainersAsync(stoppingToken);
                 var current = _routes;
@@ -88,7 +69,9 @@ public sealed partial class DockerRouteDiscovery(
             {
                 LogPollFailed(Logger, ex);
             }
-        }
+
+            await Task.Delay(PollInterval, stoppingToken);
+        } while (!stoppingToken.IsCancellationRequested);
     }
 
     private async Task RefreshFromRunningContainersAsync(CancellationToken ct)
@@ -169,17 +152,11 @@ public sealed partial class DockerRouteDiscovery(
         base.Dispose();
     }
 
-    [LoggerMessage(EventId = 1200, Level = LogLevel.Information, Message = "Docker route discovery started, found {count} routes from running containers")]
-    private static partial void LogStarted(ILogger logger, int count);
-
     [LoggerMessage(EventId = 1201, Level = LogLevel.Information, Message = "Route added: {subdomain} → {backend} ({source})")]
     private static partial void LogRouteAdded(ILogger logger, string subdomain, string backend, string source);
 
     [LoggerMessage(EventId = 1202, Level = LogLevel.Information, Message = "Route removed: {subdomain} ({source})")]
     private static partial void LogRouteRemoved(ILogger logger, string subdomain, string source);
-
-    [LoggerMessage(EventId = 1203, Level = LogLevel.Warning, Message = "Docker discovery failed to start — container route discovery will be unavailable. Check that the Docker socket is mounted and accessible.")]
-    private static partial void LogStartFailed(ILogger logger, Exception ex);
 
     [LoggerMessage(EventId = 1204, Level = LogLevel.Warning, Message = "Failed to poll Docker for container changes")]
     private static partial void LogPollFailed(ILogger logger, Exception ex);
