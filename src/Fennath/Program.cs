@@ -38,11 +38,10 @@ builder.WebHost.ConfigureKestrel((context, serverOptions) =>
         listenOptions.UseHttps(httpsOptions =>
         {
             CertificateStore? store = null;
-            httpsOptions.ServerCertificateSelector = (connectionContext, hostname) =>
+            httpsOptions.ServerCertificateSelector = (_, _) =>
             {
-                if (hostname is null) return null;
                 store ??= serverOptions.ApplicationServices.GetRequiredService<CertificateStore>();
-                return store.GetCertificate(hostname);
+                return store.GetCertificate();
             };
         });
     });

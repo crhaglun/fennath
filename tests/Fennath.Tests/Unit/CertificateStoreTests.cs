@@ -29,41 +29,14 @@ public class CertificateStoreTests : IDisposable
     [Test]
     public async Task GetCertificate_ReturnsNullWhenEmpty()
     {
-        var result = _store.GetCertificate("grafana.example.com");
-        await Assert.That(result).IsNull();
+        await Assert.That(_store.GetCertificate()).IsNull();
     }
 
     [Test]
-    public async Task GetCertificate_ReturnsNullForUnknownDomain()
+    public async Task GetCertificate_ReturnsCertAfterStore()
     {
         StoreTestCert();
-        var result = _store.GetCertificate("evil.attacker.com");
-        await Assert.That(result).IsNull();
-    }
-
-    [Test]
-    public async Task GetCertificate_ReturnsForSubdomain()
-    {
-        StoreTestCert();
-        var result = _store.GetCertificate("grafana.example.com");
-        await Assert.That(result).IsNotNull();
-    }
-
-    [Test]
-    public async Task GetCertificate_ReturnsForBareDomain()
-    {
-        StoreTestCert();
-        var result = _store.GetCertificate("example.com");
-        await Assert.That(result).IsNotNull();
-    }
-
-    [Test]
-    public async Task GetCertificate_CaseInsensitive()
-    {
-        StoreTestCert();
-        var lower = _store.GetCertificate("grafana.example.com");
-        var upper = _store.GetCertificate("GRAFANA.EXAMPLE.COM");
-        await Assert.That(lower).IsSameReferenceAs(upper);
+        await Assert.That(_store.GetCertificate()).IsNotNull();
     }
 
     [Test]

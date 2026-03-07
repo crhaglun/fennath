@@ -13,7 +13,6 @@ public sealed partial class CertificateStore : IDisposable
 {
     private readonly Lock _lock = new();
     private readonly string _storagePath;
-    private readonly string _domain;
     private readonly string _wildcardHost;
     private readonly ILogger<CertificateStore> _logger;
 
@@ -22,8 +21,7 @@ public sealed partial class CertificateStore : IDisposable
     public CertificateStore(IOptions<FennathConfig> options, ILogger<CertificateStore> logger)
     {
         _storagePath = options.Value.Certificates.StoragePath;
-        _domain = options.Value.Domain;
-        _wildcardHost = $"*.{_domain}";
+        _wildcardHost = $"*.{options.Value.Domain}";
         _logger = logger;
 
         Directory.CreateDirectory(_storagePath);
@@ -31,19 +29,9 @@ public sealed partial class CertificateStore : IDisposable
     }
 
     /// <summary>
-    /// Returns the wildcard certificate for any hostname under the configured domain.
-    /// Returns null for hostnames outside our domain or if no certificate is loaded.
+    /// Returns the current certificate, or null if none is loaded.
     /// </summary>
-    public X509Certificate2? GetCertificate(string hostname)
-    {
-        if (string.Equals(hostname, _domain, StringComparison.OrdinalIgnoreCase)
-            || hostname.EndsWith($".{_domain}", StringComparison.OrdinalIgnoreCase))
-        {
-            return _certificate;
-        }
-
-        return null;
-    }
+    public X509Certificate2? GetCertificate() => _certificate;
 
     /// <summary>
     /// Stores a certificate from Let's Encrypt, replacing any existing one.
