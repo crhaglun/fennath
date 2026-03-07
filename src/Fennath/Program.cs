@@ -45,10 +45,7 @@ var app = builder.Build();
 var config = app.Services.GetRequiredService<IOptions<FennathConfig>>().Value;
 
 // HTTP → HTTPS redirect (when enabled in config)
-if (config.Server.HttpToHttpsRedirect)
-{
-    app.UseHttpsRedirection();
-}
+app.UseHttpsRedirection();
 
 // Eagerly resolve RouteAggregator to trigger initial route loading
 _ = app.Services.GetRequiredService<RouteAggregator>();

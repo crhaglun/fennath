@@ -52,5 +52,4 @@ public sealed class ServerConfig
 {
     public int HttpsPort { get; set; } = 443;
     public int HttpPort { get; set; } = 80;
-    public bool HttpToHttpsRedirect { get; set; } = true;
 }
