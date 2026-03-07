@@ -27,8 +27,24 @@ public class CertificateStoreTests : IDisposable
     }
 
     [Test]
+    public async Task GetCertificate_ReturnsNullWhenEmpty()
+    {
+        var result = _store.GetCertificate("grafana.example.com");
+        await Assert.That(result).IsNull();
+    }
+
+    [Test]
+    public async Task GetCertificate_ReturnsNullForUnknownDomain()
+    {
+        StoreTestCert();
+        var result = _store.GetCertificate("evil.attacker.com");
+        await Assert.That(result).IsNull();
+    }
+
+    [Test]
     public async Task GetCertificate_ReturnsForSubdomain()
     {
+        StoreTestCert();
         var result = _store.GetCertificate("grafana.example.com");
         await Assert.That(result).IsNotNull();
     }
@@ -36,47 +52,37 @@ public class CertificateStoreTests : IDisposable
     [Test]
     public async Task GetCertificate_ReturnsForBareDomain()
     {
+        StoreTestCert();
         var result = _store.GetCertificate("example.com");
         await Assert.That(result).IsNotNull();
     }
 
     [Test]
-    public async Task GetCertificate_ReturnsNullForUnknownDomain()
-    {
-        var result = _store.GetCertificate("evil.attacker.com");
-        await Assert.That(result).IsNull();
-    }
-
-    [Test]
     public async Task GetCertificate_CaseInsensitive()
     {
+        StoreTestCert();
         var lower = _store.GetCertificate("grafana.example.com");
         var upper = _store.GetCertificate("GRAFANA.EXAMPLE.COM");
         await Assert.That(lower).IsSameReferenceAs(upper);
     }
 
     [Test]
-    public async Task GetExpiry_ReturnsNullBeforeRealCertStored()
+    public async Task GetExpiry_ReturnsNullWhenEmpty()
     {
-        var expiry = _store.GetExpiry();
-        await Assert.That(expiry).IsNull();
+        await Assert.That(_store.GetExpiry()).IsNull();
     }
 
     [Test]
     public async Task StoreCertificate_SetsExpiry()
     {
-        using var cert = CreateSelfSignedCert("*.example.com");
-        _store.StoreCertificate(cert);
-
-        var expiry = _store.GetExpiry();
-        await Assert.That(expiry).IsNotNull();
+        StoreTestCert();
+        await Assert.That(_store.GetExpiry()).IsNotNull();
     }
 
     [Test]
     public async Task StoreCertificate_PersistsToDisk()
     {
-        using var cert = CreateSelfSignedCert("*.example.com");
-        _store.StoreCertificate(cert);
+        StoreTestCert();
 
         var pfxFiles = Directory.GetFiles(_tempDir, "*.pfx");
         await Assert.That(pfxFiles).Count().IsEqualTo(1);
@@ -86,19 +92,16 @@ public class CertificateStoreTests : IDisposable
     [Test]
     public async Task LoadFromDisk_LoadsValidCertificate()
     {
-        using var cert = CreateSelfSignedCert("*.example.com");
-        _store.StoreCertificate(cert);
+        StoreTestCert();
 
         using var newStore = CreateStore();
-        var expiry = newStore.GetExpiry();
-        await Assert.That(expiry).IsNotNull();
+        await Assert.That(newStore.GetExpiry()).IsNotNull();
     }
 
     [Test]
     public async Task LoadFromDisk_SkipsExpiredCertificate()
     {
-        // Write an already-expired cert directly to disk
-        using var expired = CreateSelfSignedCert("*.example.com", TimeSpan.FromDays(-1));
+        using var expired = CreateCert(TimeSpan.FromDays(-1));
         await File.WriteAllBytesAsync(
             Path.Combine(_tempDir, "wildcard.pfx"),
             expired.Export(X509ContentType.Pfx));
@@ -110,24 +113,21 @@ public class CertificateStoreTests : IDisposable
     [Test]
     public async Task StoreCertificate_ReplacesExisting()
     {
-        using var first = CreateSelfSignedCert("*.example.com", TimeSpan.FromDays(30));
+        var first = CreateCert(TimeSpan.FromDays(30));
         _store.StoreCertificate(first);
         var firstExpiry = _store.GetExpiry();
 
-        using var second = CreateSelfSignedCert("*.example.com", TimeSpan.FromDays(90));
+        var second = CreateCert(TimeSpan.FromDays(90));
         _store.StoreCertificate(second);
         var secondExpiry = _store.GetExpiry();
 
         await Assert.That(secondExpiry).IsNotEqualTo(firstExpiry);
     }
 
-    [Test]
-    public async Task SelfSignedFallback_IsNotPersistedToDisk()
+    private void StoreTestCert()
     {
-        _ = _store.GetCertificate("ephemeral.example.com");
-
-        var pfxFiles = Directory.GetFiles(_tempDir, "*.pfx");
-        await Assert.That(pfxFiles).Count().IsEqualTo(0);
+        var cert = CreateCert();
+        _store.StoreCertificate(cert);
     }
 
     private CertificateStore CreateStore()
@@ -146,14 +146,14 @@ public class CertificateStoreTests : IDisposable
         return new CertificateStore(options, NullLogger<CertificateStore>.Instance);
     }
 
-    private static X509Certificate2 CreateSelfSignedCert(string cn, TimeSpan? validity = null)
+    private static X509Certificate2 CreateCert(TimeSpan? validity = null)
     {
         using var rsa = RSA.Create(2048);
-        var request = new CertificateRequest($"CN={cn}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var request = new CertificateRequest("CN=*.example.com", rsa,
+            HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         var effectiveValidity = validity ?? TimeSpan.FromDays(90);
 
-        DateTimeOffset notBefore;
-        DateTimeOffset notAfter;
+        DateTimeOffset notBefore, notAfter;
         if (effectiveValidity < TimeSpan.Zero)
         {
             notBefore = DateTimeOffset.UtcNow.AddDays(-30);

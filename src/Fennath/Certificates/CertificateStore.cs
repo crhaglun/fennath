@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Fennath.Configuration;
 using Microsoft.Extensions.Options;
@@ -8,8 +7,7 @@ namespace Fennath.Certificates;
 /// <summary>
 /// Stores the single wildcard certificate in memory and on disk.
 /// Thread-safe for concurrent reads during TLS handshakes.
-/// When no persisted certificate is available, serves a temporary self-signed
-/// certificate until a real one is provisioned from Let's Encrypt.
+/// The application blocks on startup until a valid certificate is available.
 /// </summary>
 public sealed partial class CertificateStore : IDisposable
 {
@@ -30,17 +28,11 @@ public sealed partial class CertificateStore : IDisposable
 
         Directory.CreateDirectory(_storagePath);
         LoadFromDisk();
-
-        if (_certificate is null)
-        {
-            _certificate = GenerateSelfSignedCertificate(_wildcardHost);
-            LogSelfSignedGenerated(_logger, _wildcardHost);
-        }
     }
 
     /// <summary>
     /// Returns the wildcard certificate for any hostname under the configured domain.
-    /// Returns null for hostnames outside our domain.
+    /// Returns null for hostnames outside our domain or if no certificate is loaded.
     /// </summary>
     public X509Certificate2? GetCertificate(string hostname)
     {
@@ -54,7 +46,7 @@ public sealed partial class CertificateStore : IDisposable
     }
 
     /// <summary>
-    /// Replaces the current certificate with a real one from Let's Encrypt.
+    /// Stores a certificate from Let's Encrypt, replacing any existing one.
     /// </summary>
     public void StoreCertificate(X509Certificate2 certificate)
     {
@@ -71,12 +63,9 @@ public sealed partial class CertificateStore : IDisposable
     }
 
     /// <summary>
-    /// Returns the expiry of the real certificate, or null if only self-signed.
+    /// Returns the expiry of the certificate, or null if none is loaded.
     /// </summary>
-    public DateTime? GetExpiry()
-    {
-        return _isSelfSigned ? null : _certificate?.NotAfter;
-    }
+    public DateTime? GetExpiry() => _certificate?.NotAfter;
 
     private void LoadFromDisk()
     {
@@ -111,25 +100,6 @@ public sealed partial class CertificateStore : IDisposable
         File.WriteAllBytes(path, certificate.Export(X509ContentType.Pfx));
     }
 
-    private static X509Certificate2 GenerateSelfSignedCertificate(string hostname)
-    {
-        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var request = new CertificateRequest(
-            $"CN={hostname}", key, HashAlgorithmName.SHA256);
-
-        var sanBuilder = new SubjectAlternativeNameBuilder();
-        sanBuilder.AddDnsName(hostname);
-        request.CertificateExtensions.Add(sanBuilder.Build());
-
-        var cert = request.CreateSelfSigned(
-            DateTimeOffset.UtcNow.AddMinutes(-1),
-            DateTimeOffset.UtcNow.AddDays(7));
-
-        var pfxBytes = cert.Export(X509ContentType.Pfx);
-        return X509CertificateLoader.LoadPkcs12(pfxBytes, null,
-            X509KeyStorageFlags.Exportable);
-    }
-
     public void Dispose()
     {
         _certificate?.Dispose();
@@ -146,7 +116,4 @@ public sealed partial class CertificateStore : IDisposable
 
     [LoggerMessage(EventId = 1123, Level = LogLevel.Warning, Message = "Failed to load certificate from {path}")]
     private static partial void LogCertificateLoadFailed(ILogger logger, string path, Exception ex);
-
-    [LoggerMessage(EventId = 1124, Level = LogLevel.Warning, Message = "No certificate for {hostname} — using temporary self-signed certificate until Let's Encrypt provisioning completes")]
-    private static partial void LogSelfSignedGenerated(ILogger logger, string hostname);
 }

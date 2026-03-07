@@ -76,6 +76,14 @@ if (config.Certificates.Staging)
 
 Log.Starting(app.Logger, config.Domain);
 
+// Ensure a valid certificate exists before accepting traffic.
+// DNS-01 challenges don't need the web server, so we block here on first launch.
+if (app.Services.GetRequiredService<CertificateStore>().GetExpiry() is null)
+{
+    Log.ProvisioningCertificate(app.Logger, config.Domain);
+    await app.Services.GetRequiredService<AcmeService>().ProvisionWildcardCertificateAsync();
+}
+
 await app.RunAsync();
 
 return 0;
@@ -87,4 +95,7 @@ internal static partial class Log
 
     [LoggerMessage(EventId = 1301, Level = LogLevel.Information, Message = "Fennath starting for domain {domain}")]
     public static partial void Starting(ILogger logger, string domain);
+
+    [LoggerMessage(EventId = 1302, Level = LogLevel.Information, Message = "No certificate on disk for {domain} — provisioning from Let's Encrypt before accepting traffic")]
+    public static partial void ProvisioningCertificate(ILogger logger, string domain);
 }

@@ -1,6 +1,7 @@
 using System.Security.Cryptography.X509Certificates;
 using Certes;
 using Certes.Acme;
+using Certes.Acme.Resource;
 using Fennath.Configuration;
 using Fennath.Dns;
 using Microsoft.Extensions.Options;
@@ -53,9 +54,20 @@ public sealed partial class AcmeService(
             // Wait for DNS propagation
             await Task.Delay(TimeSpan.FromSeconds(30), ct);
 
-            var challengeResult = await challenge.Validate();
-            var status = challengeResult.Status?.ToString() ?? "unknown";
-            LogChallengeValidated(Logger, domain, status);
+            await challenge.Validate();
+
+            while (true)
+            {
+                var resource = await challenge.Resource();
+                if (resource.Status == ChallengeStatus.Valid)
+                    break;
+                if (resource.Status == ChallengeStatus.Invalid)
+                    throw new InvalidOperationException(
+                        $"ACME challenge failed for {domain}: {resource.Error?.Detail}");
+                await Task.Delay(TimeSpan.FromSeconds(5), ct);
+            }
+
+            LogChallengeValidated(Logger, domain);
         }
 
         // Generate certificate
@@ -119,7 +131,7 @@ public sealed partial class AcmeService(
         var newAcme = new AcmeContext(acmeServer);
         await newAcme.NewAccount(config.Certificates.Email, termsOfServiceAgreed: true);
 
-        Directory.CreateDirectory(config.Certificates.StoragePath);
+        System.IO.Directory.CreateDirectory(config.Certificates.StoragePath);
         await File.WriteAllTextAsync(keyPath, newAcme.AccountKey.ToPem());
         LogAccountKeyCreated(Logger, keyPath);
 
@@ -135,8 +147,8 @@ public sealed partial class AcmeService(
     [LoggerMessage(EventId = 1101, Level = LogLevel.Information, Message = "Setting DNS-01 challenge for {subdomain}: {value}")]
     private static partial void LogSettingDnsChallenge(ILogger logger, string subdomain, string value);
 
-    [LoggerMessage(EventId = 1102, Level = LogLevel.Information, Message = "Challenge validated for {domain}: {status}")]
-    private static partial void LogChallengeValidated(ILogger logger, string domain, string status);
+    [LoggerMessage(EventId = 1102, Level = LogLevel.Information, Message = "Challenge validated for {domain}")]
+    private static partial void LogChallengeValidated(ILogger logger, string domain);
 
     [LoggerMessage(EventId = 1103, Level = LogLevel.Warning, Message = "Failed to clean up DNS challenge record for {subdomain}")]
     private static partial void LogChallengeCleanupFailed(ILogger logger, string subdomain, Exception ex);
