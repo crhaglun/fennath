@@ -219,13 +219,13 @@ fennath.healthcheck.interval=30
 
 **Deliverable:** Grafana dashboards showing request flow, error rates, and system health.
 
-### Phase 6: Hardening & Polish
+### Phase 6: Hardening & Polish ✅
 **Goal:** Production-ready deployment.
 
-- [ ] HTTP → HTTPS redirect
-- [ ] Graceful shutdown (drain connections)
-- [ ] Dockerfile (multi-stage build, minimal image)
-- [ ] `docker-compose.yaml` for deployment
-- [ ] README.md with setup guide
+- [x] HTTP → HTTPS redirect
+- [x] Graceful shutdown (drain connections)
+- [x] Dockerfile (multi-stage build, minimal image)
+- [x] `docker-compose.yaml` for deployment
+- [x] README.md with setup guide
 
 **Deliverable:** `docker compose up` deploys a fully functional Fennath instance.
