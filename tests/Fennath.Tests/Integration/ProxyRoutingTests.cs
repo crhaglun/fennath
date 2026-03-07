@@ -92,6 +92,19 @@ public class ProxyRoutingTests : IAsyncDisposable
     }
 
     [Test]
+    public async Task Healthz_endpoint_returns_healthy()
+    {
+        using var fennath = await CreateFennathTestHost(
+            new RouteEntry { Subdomain = "grafana", Backend = _backendUrl });
+
+        var client = fennath.GetTestClient();
+
+        var response = await client.GetAsync("/healthz");
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    [Test]
     public async Task Multiple_routes_proxy_to_correct_backends()
     {
         using var backend2Host = Host.CreateDefaultBuilder()
@@ -145,6 +158,7 @@ public class ProxyRoutingTests : IAsyncDisposable
                     services.AddSingleton(inMemoryConfig);
                     services.AddSingleton<IProxyConfigProvider>(inMemoryConfig);
                     services.AddReverseProxy();
+                    services.AddHealthChecks();
 
                     var yarpRoutes = routes.Select(r => new RouteConfig
                     {
@@ -171,6 +185,7 @@ public class ProxyRoutingTests : IAsyncDisposable
                     app.UseRouting();
                     app.UseEndpoints(endpoints =>
                     {
+                        endpoints.MapHealthChecks("/healthz");
                         endpoints.MapReverseProxy();
                     });
                 });

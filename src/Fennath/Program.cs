@@ -15,12 +15,14 @@ builder.Services
 builder.Services.AddSingleton<IValidateOptions<FennathConfig>, FennathConfigValidator>();
 
 builder.Services.AddFennathProxy();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
 // Eagerly resolve RouteAggregator to trigger initial route loading
 _ = app.Services.GetRequiredService<RouteAggregator>();
 
+app.MapHealthChecks("/healthz");
 app.MapReverseProxy();
 
 var config = app.Services.GetRequiredService<IOptions<FennathConfig>>().Value;

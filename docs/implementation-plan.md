@@ -148,7 +148,7 @@ Sensitive values use environment variables: `Fennath__Dns__Loopia__Password=secr
 
 ## Implementation Phases
 
-### Phase 1: Foundation ✅ (in progress — health checks remaining)
+### Phase 1: Foundation ✅
 **Goal:** A working HTTP reverse proxy with static config.
 
 - [x] Project scaffolding — .NET 10 solution, Directory.Build.props, central package management
@@ -160,7 +160,7 @@ Sensitive values use environment variables: `Fennath__Dns__Loopia__Password=secr
 - [x] Basic HTTP reverse proxy with static routes
 - [x] Integration tests — real HTTP through YARP with TestServer
 - [x] Unit tests — config validation, route conflict resolution
-- [ ] Backend health checks
+- [x] Backend health checks — YARP active health checks wired from config, `/healthz` self-health endpoint
 
 **Deliverable:** `dotnet run` forwards HTTP requests to backends based on configuration.
 
