@@ -19,5 +19,23 @@ services:
     env_file:
       - .env
 
+  # Example backends for experimentation — traefik/whoami echoes
+  # request info (headers, hostname, IP) as plain text.
+  app-one:
+    image: traefik/whoami
+    container_name: app-one
+    labels:
+      - "fennath.subdomain=one"
+      - "fennath.backend=http://app-one:80"
+      - "fennath.healthcheck.path=/health"
+
+  app-two:
+    image: traefik/whoami
+    container_name: app-two
+    command: --name app-two
+    labels:
+      - "fennath.subdomain=two"
+      - "fennath.backend=http://app-two:80"
+
 volumes:
   certs:
