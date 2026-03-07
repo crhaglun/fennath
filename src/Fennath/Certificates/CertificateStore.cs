@@ -42,7 +42,16 @@ public sealed partial class CertificateStore : IDisposable
         {
             var old = _certificate;
             _certificate = certificate;
-            SaveToDisk(certificate);
+
+            try
+            {
+                SaveToDisk(certificate);
+            }
+            catch (Exception ex)
+            {
+                LogDiskWriteFailed(_logger, ex);
+            }
+
             if (old is not null && old != certificate)
             {
                 old.Dispose();
@@ -109,4 +118,7 @@ public sealed partial class CertificateStore : IDisposable
 
     [LoggerMessage(EventId = 1123, Level = LogLevel.Warning, Message = "Failed to load certificate from {path}")]
     private static partial void LogCertificateLoadFailed(ILogger logger, string path, Exception ex);
+
+    [LoggerMessage(EventId = 1124, Level = LogLevel.Error, Message = "Failed to persist certificate to disk — certificate is in memory but will be lost on restart")]
+    private static partial void LogDiskWriteFailed(ILogger logger, Exception ex);
 }

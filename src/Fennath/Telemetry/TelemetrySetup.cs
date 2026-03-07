@@ -23,7 +23,6 @@ public static class TelemetrySetup
         otel.WithTracing(tracing =>
         {
             tracing
-                .AddSource(FennathMetrics.MeterName)
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddOtlpExporter();

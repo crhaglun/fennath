@@ -4,6 +4,7 @@ using Certes.Acme;
 using Certes.Acme.Resource;
 using Fennath.Configuration;
 using Fennath.Dns;
+using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
 namespace Fennath.Certificates;
@@ -17,8 +18,11 @@ public sealed partial class AcmeService(
     IDnsProvider DnsProvider,
     CertificateStore CertStore,
     IOptions<FennathConfig> Options,
+    FennathMetrics Metrics,
     ILogger<AcmeService> Logger)
 {
+    private static readonly TimeSpan ChallengeTimeout = TimeSpan.FromMinutes(5);
+
     /// <summary>
     /// Provisions a certificate for the given hostnames via ACME DNS-01 challenge.
     /// </summary>
@@ -41,44 +45,37 @@ public sealed partial class AcmeService(
 
         var order = await acme.NewOrder(hostnames.ToList());
 
-        // Complete DNS-01 challenges
+        // Complete DNS-01 challenges, tracking created records for cleanup
+        var createdChallengeSubdomains = new List<string>();
         var authorizations = await order.Authorizations();
-        foreach (var auth in authorizations)
+
+        try
         {
-            var challenge = await auth.Dns();
-            var dnsTxt = acme.AccountKey.DnsTxt(challenge.Token);
-
-            var authResource = await auth.Resource();
-            var domain = authResource.Identifier.Value;
-            var challengeSubdomain = ChallengeSubdomain(domain, config.Domain);
-
-            LogSettingDnsChallenge(Logger, challengeSubdomain, dnsTxt);
-
-            await DnsProvider.CreateTxtRecordAsync(challengeSubdomain, dnsTxt, ttl: 60, ct: ct);
-
-            // Wait for DNS propagation
-            await Task.Delay(TimeSpan.FromSeconds(30), ct);
-
-            await challenge.Validate();
-
-            while (true)
+            foreach (var auth in authorizations)
             {
-                var resource = await challenge.Resource();
-                if (resource.Status == ChallengeStatus.Valid)
-                {
-                    break;
-                }
+                var challenge = await auth.Dns();
+                var dnsTxt = acme.AccountKey.DnsTxt(challenge.Token);
 
-                if (resource.Status == ChallengeStatus.Invalid)
-                {
-                    throw new InvalidOperationException(
-                        $"ACME challenge failed for {domain}: {resource.Error?.Detail}");
-                }
+                var authResource = await auth.Resource();
+                var domain = authResource.Identifier.Value;
+                var challengeSubdomain = ChallengeSubdomain(domain, config.Domain);
 
-                await Task.Delay(TimeSpan.FromSeconds(5), ct);
+                LogSettingDnsChallenge(Logger, challengeSubdomain, dnsTxt);
+
+                await DnsProvider.CreateTxtRecordAsync(challengeSubdomain, dnsTxt, ttl: 60, ct: ct);
+                createdChallengeSubdomains.Add(challengeSubdomain);
+
+                LogWaitingForDnsPropagation(Logger, domain);
+                await Task.Delay(TimeSpan.FromSeconds(30), ct);
+
+                await challenge.Validate();
+                await WaitForChallengeAsync(challenge, domain, ct);
             }
-
-            LogChallengeValidated(Logger, domain);
+        }
+        catch
+        {
+            await CleanupChallengeRecordsAsync(createdChallengeSubdomains, ct);
+            throw;
         }
 
         // Generate certificate
@@ -95,24 +92,11 @@ public sealed partial class AcmeService(
 
         CertStore.StoreCertificate(certificate);
 
-        // Clean up DNS challenge records
-        foreach (var auth in authorizations)
-        {
-            var authResource = await auth.Resource();
-            var domain = authResource.Identifier.Value;
-            var challengeSubdomain = ChallengeSubdomain(domain, config.Domain);
-
-            try
-            {
-                await DnsProvider.RemoveTxtRecordAsync(challengeSubdomain, ct);
-            }
-            catch (Exception ex)
-            {
-                LogChallengeCleanupFailed(Logger, challengeSubdomain, ex);
-            }
-        }
+        await CleanupChallengeRecordsAsync(createdChallengeSubdomains, ct);
 
         LogProvisioningComplete(Logger, hostnames[0], certificate.NotAfter);
+        Metrics.AcmeProvisioningTotal.Add(1,
+            new KeyValuePair<string, object?>("result", "success"));
         return certificate;
     }
 
@@ -123,6 +107,55 @@ public sealed partial class AcmeService(
     {
         var domain = Options.Value.Domain;
         return await ProvisionCertificateAsync([$"*.{domain}", domain], ct);
+    }
+
+    private async Task WaitForChallengeAsync(IChallengeContext challenge, string domain, CancellationToken ct)
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(ChallengeTimeout);
+
+        try
+        {
+            while (true)
+            {
+                var resource = await challenge.Resource();
+                LogChallengePolling(Logger, domain, resource.Status);
+
+                if (resource.Status == ChallengeStatus.Valid)
+                {
+                    LogChallengeValidated(Logger, domain);
+                    return;
+                }
+
+                if (resource.Status == ChallengeStatus.Invalid)
+                {
+                    throw new InvalidOperationException(
+                        $"ACME challenge failed for {domain}: {resource.Error?.Detail}");
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(5), timeout.Token);
+            }
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"ACME challenge for {domain} did not complete within {ChallengeTimeout.TotalMinutes} minutes");
+        }
+    }
+
+    private async Task CleanupChallengeRecordsAsync(List<string> subdomains, CancellationToken ct)
+    {
+        foreach (var subdomain in subdomains)
+        {
+            try
+            {
+                await DnsProvider.RemoveTxtRecordAsync(subdomain, ct);
+            }
+            catch (Exception ex)
+            {
+                LogChallengeCleanupFailed(Logger, subdomain, ex);
+            }
+        }
     }
 
     private async Task<AcmeContext> GetOrCreateAcmeContextAsync(Uri acmeServer, FennathConfig config)
@@ -175,4 +208,10 @@ public sealed partial class AcmeService(
 
     [LoggerMessage(EventId = 1107, Level = LogLevel.Warning, Message = "Using Let's Encrypt STAGING — certificate will NOT be browser-trusted")]
     private static partial void LogStagingWarning(ILogger logger);
+
+    [LoggerMessage(EventId = 1108, Level = LogLevel.Debug, Message = "Waiting for DNS propagation for {domain}")]
+    private static partial void LogWaitingForDnsPropagation(ILogger logger, string domain);
+
+    [LoggerMessage(EventId = 1109, Level = LogLevel.Debug, Message = "Challenge status for {domain}: {status}")]
+    private static partial void LogChallengePolling(ILogger logger, string domain, ChallengeStatus? status);
 }

@@ -57,6 +57,8 @@ public sealed partial class CertificateRenewalService(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            Metrics.AcmeProvisioningTotal.Add(1,
+                new KeyValuePair<string, object?>("result", "failure"));
             LogRenewalCheckFailed(Logger, ex);
         }
     }

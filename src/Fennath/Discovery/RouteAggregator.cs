@@ -43,7 +43,9 @@ public sealed partial class RouteAggregator : IDisposable
 
     private void RebuildRoutes()
     {
-        var merged = Merge(_sources.SelectMany(s => s.GetRoutes()).ToList());
+        var allRoutes = _sources.SelectMany(s => s.GetRoutes()).ToList();
+        var merged = Merge(allRoutes);
+        LogRebuildingRoutes(_logger, allRoutes.Count, merged.Count);
 
         var yarpRoutes = new List<RouteConfig>();
         var yarpClusters = new List<ClusterConfig>();
@@ -109,4 +111,7 @@ public sealed partial class RouteAggregator : IDisposable
 
     [LoggerMessage(EventId = 1220, Level = LogLevel.Information, Message = "YARP configuration updated with {count} routes")]
     private static partial void LogRoutesUpdated(ILogger logger, int count);
+
+    [LoggerMessage(EventId = 1221, Level = LogLevel.Debug, Message = "Rebuilding routes: {totalCount} from sources, {mergedCount} after dedup")]
+    private static partial void LogRebuildingRoutes(ILogger logger, int totalCount, int mergedCount);
 }

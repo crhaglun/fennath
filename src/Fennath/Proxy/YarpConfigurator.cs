@@ -42,9 +42,9 @@ public static class YarpConfigurator
         });
 
         // DNS
-        services.AddHttpClient<LoopiaDnsProvider>();
+        services.AddHttpClient<LoopiaDnsProvider>(client => client.Timeout = TimeSpan.FromSeconds(60));
         services.AddSingleton<IDnsProvider>(sp => sp.GetRequiredService<LoopiaDnsProvider>());
-        services.AddHttpClient<PublicIpResolver>();
+        services.AddHttpClient<PublicIpResolver>(client => client.Timeout = TimeSpan.FromSeconds(30));
         services.AddSingleton<PublicIpResolver>();
         services.AddHostedService<DnsUpdateService>();
 

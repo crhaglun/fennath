@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
 namespace Fennath.Telemetry;
@@ -11,8 +10,6 @@ namespace Fennath.Telemetry;
 public sealed class FennathMetrics
 {
     public const string MeterName = "Fennath";
-
-    public static readonly ActivitySource ActivitySource = new(MeterName);
 
     private readonly Meter _meter;
 
@@ -33,9 +30,9 @@ public sealed class FennathMetrics
             unit: "d",
             description: "Days until certificate expiry per hostname");
 
-        BackendHealth = _meter.CreateGauge<int>(
-            "fennath.backend.health",
-            description: "Backend health status per route (1=up, 0=down)");
+        AcmeProvisioningTotal = _meter.CreateCounter<long>(
+            "fennath.acme.provisioning.total",
+            description: "Number of ACME certificate provisioning attempts by result");
 
         RequestsTotal = _meter.CreateCounter<long>(
             "fennath.requests.total",
@@ -50,7 +47,7 @@ public sealed class FennathMetrics
     public Counter<long> DnsUpdatesTotal { get; }
     public Counter<long> IpChangesTotal { get; }
     public Gauge<double> CertExpiryDays { get; }
-    public Gauge<int> BackendHealth { get; }
+    public Counter<long> AcmeProvisioningTotal { get; }
     public Counter<long> RequestsTotal { get; }
     public Histogram<double> RequestDuration { get; }
 }

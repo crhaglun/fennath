@@ -164,6 +164,8 @@ public sealed partial class LoopiaDnsProvider(
 
     private async Task<XDocument> CallAsync(string method, XElement[] parameters, CancellationToken ct)
     {
+        LogXmlRpcCall(Logger, method);
+
         var request = new XDocument(
             new XElement("methodCall",
                 new XElement("methodName", method),
@@ -264,6 +266,9 @@ public sealed partial class LoopiaDnsProvider(
 
     [LoggerMessage(EventId = 1014, Level = LogLevel.Information, Message = "Removed TXT record(s) for '{subdomain}'")]
     private static partial void LogTxtRecordRemoved(ILogger logger, string subdomain);
+
+    [LoggerMessage(EventId = 1015, Level = LogLevel.Debug, Message = "XML-RPC call: {method}")]
+    private static partial void LogXmlRpcCall(ILogger logger, string method);
 }
 
 internal sealed class ZoneRecord

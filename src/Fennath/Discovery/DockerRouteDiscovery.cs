@@ -91,11 +91,20 @@ public sealed partial class DockerRouteDiscovery(
                 }
             }, ct);
 
+        LogContainersFound(Logger, containers.Count);
+
         var routes = new List<DiscoveredRoute>();
         foreach (var container in containers)
         {
             var name = container.Names.FirstOrDefault()?.TrimStart('/') ?? container.ID[..12];
-            routes.AddRange(ParseContainerRoutes(container.ID[..12], name, container.Labels));
+            try
+            {
+                routes.AddRange(ParseContainerRoutes(container.ID[..12], name, container.Labels));
+            }
+            catch (Exception ex)
+            {
+                LogContainerParseFailed(Logger, name, ex);
+            }
         }
 
         lock (_lock)
@@ -166,4 +175,10 @@ public sealed partial class DockerRouteDiscovery(
 
     [LoggerMessage(EventId = 1204, Level = LogLevel.Warning, Message = "Failed to poll Docker for container changes")]
     private static partial void LogPollFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(EventId = 1205, Level = LogLevel.Debug, Message = "Docker poll found {count} labeled containers")]
+    private static partial void LogContainersFound(ILogger logger, int count);
+
+    [LoggerMessage(EventId = 1206, Level = LogLevel.Warning, Message = "Failed to parse routes for container {containerName}")]
+    private static partial void LogContainerParseFailed(ILogger logger, string containerName, Exception ex);
 }
