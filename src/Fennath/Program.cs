@@ -16,6 +16,9 @@ builder.Services
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<FennathConfig>, FennathConfigValidator>();
 
+// Graceful shutdown — allow in-flight requests to drain before terminating
+builder.Services.Configure<HostOptions>(opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(30));
+
 builder.Services.AddFennathTelemetry(builder.Configuration);
 builder.Services.AddFennathProxy(builder.Configuration);
 builder.Services.AddHealthChecks();
@@ -23,19 +26,39 @@ builder.Services.AddHealthChecks();
 // Configure Kestrel TLS with dynamic certificate selection
 builder.WebHost.ConfigureKestrel((context, serverOptions) =>
 {
-    serverOptions.ConfigureHttpsDefaults(httpsOptions =>
+    var fennathConfig = context.Configuration
+        .GetSection(FennathConfig.SectionName)
+        .Get<FennathConfig>();
+
+    var httpsPort = fennathConfig?.Server.HttpsPort ?? 443;
+    var httpPort = fennathConfig?.Server.HttpPort ?? 80;
+
+    serverOptions.ListenAnyIP(httpsPort, listenOptions =>
     {
-        CertificateStore? store = null;
-        httpsOptions.ServerCertificateSelector = (connectionContext, hostname) =>
+        listenOptions.UseHttps(httpsOptions =>
         {
-            if (hostname is null) return null;
-            store ??= serverOptions.ApplicationServices.GetRequiredService<CertificateStore>();
-            return store.GetCertificate(hostname);
-        };
+            CertificateStore? store = null;
+            httpsOptions.ServerCertificateSelector = (connectionContext, hostname) =>
+            {
+                if (hostname is null) return null;
+                store ??= serverOptions.ApplicationServices.GetRequiredService<CertificateStore>();
+                return store.GetCertificate(hostname);
+            };
+        });
     });
+
+    serverOptions.ListenAnyIP(httpPort);
 });
 
 var app = builder.Build();
+
+var config = app.Services.GetRequiredService<IOptions<FennathConfig>>().Value;
+
+// HTTP → HTTPS redirect (when enabled in config)
+if (config.Server.HttpToHttpsRedirect)
+{
+    app.UseHttpsRedirection();
+}
 
 // Start Docker discovery (async init: snapshot running containers + subscribe to events)
 var dockerDiscovery = app.Services.GetService<DockerRouteDiscovery>();
@@ -52,8 +75,6 @@ app.MapReverseProxy(proxyPipeline =>
 {
     proxyPipeline.UseMiddleware<Fennath.Telemetry.ProxyMetricsMiddleware>();
 });
-
-var config = app.Services.GetRequiredService<IOptions<FennathConfig>>().Value;
 
 if (config.Certificates.Staging)
 {

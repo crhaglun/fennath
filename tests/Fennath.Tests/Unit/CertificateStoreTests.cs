@@ -66,11 +66,13 @@ public class CertificateStoreTests : IDisposable
     }
 
     [Test]
-    public async Task GetCertificate_NoMatch_ReturnsNull()
+    public async Task GetCertificate_NoPersistedCert_ReturnsSelfSignedFallback()
     {
         var result = _store.GetCertificate("unknown.example.com");
 
-        await Assert.That(result).IsNull();
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.Subject).Contains("unknown.example.com");
+        await Assert.That(_store.IsSelfSigned("unknown.example.com")).IsTrue();
     }
 
     [Test]
@@ -152,7 +154,9 @@ public class CertificateStoreTests : IDisposable
         using var newStore = new CertificateStore(options, NullLogger<CertificateStore>.Instance);
         var result = newStore.GetCertificate("expired.example.com");
 
-        await Assert.That(result).IsNull();
+        // The expired cert was not loaded — any cert returned is a self-signed fallback
+        await Assert.That(newStore.IsSelfSigned("expired.example.com")).IsTrue();
+        await Assert.That(newStore.GetCertificateExpiries().ContainsKey("expired.example.com")).IsFalse();
     }
 
     [Test]
@@ -180,6 +184,50 @@ public class CertificateStoreTests : IDisposable
         var result = _store.GetCertificate("grafana.example.com");
 
         await Assert.That(result).IsNotNull();
+    }
+
+    [Test]
+    public async Task SelfSignedFallback_IsNotPersistedToDisk()
+    {
+        _ = _store.GetCertificate("ephemeral.example.com");
+
+        var pfxFiles = Directory.GetFiles(_tempDir, "*.pfx");
+        await Assert.That(pfxFiles).Count().IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task SelfSignedFallback_IsExcludedFromExpiries()
+    {
+        _ = _store.GetCertificate("ephemeral.example.com");
+
+        var expiries = _store.GetCertificateExpiries();
+        await Assert.That(expiries.ContainsKey("ephemeral.example.com")).IsFalse();
+    }
+
+    [Test]
+    public async Task SelfSignedFallback_IsReplacedByRealCert()
+    {
+        // First call generates self-signed
+        var selfSigned = _store.GetCertificate("replaced.example.com");
+        await Assert.That(_store.IsSelfSigned("replaced.example.com")).IsTrue();
+
+        // Store a real cert — replaces the self-signed
+        using var realCert = CreateSelfSignedCert("replaced.example.com");
+        _store.StoreCertificate("replaced.example.com", realCert);
+
+        await Assert.That(_store.IsSelfSigned("replaced.example.com")).IsFalse();
+
+        var expiries = _store.GetCertificateExpiries();
+        await Assert.That(expiries.ContainsKey("replaced.example.com")).IsTrue();
+    }
+
+    [Test]
+    public async Task SelfSignedFallback_SameHostReturnsCachedCert()
+    {
+        var first = _store.GetCertificate("cached.example.com");
+        var second = _store.GetCertificate("cached.example.com");
+
+        await Assert.That(first).IsSameReferenceAs(second);
     }
 
     private static X509Certificate2 CreateSelfSignedCert(string cn, TimeSpan? validity = null)

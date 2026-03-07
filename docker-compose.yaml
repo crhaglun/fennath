@@ -1,0 +1,25 @@
+services:
+  fennath:
+    build: .
+    container_name: fennath
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - certs:/data/certs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      # Required — set these in a .env file or override per-host
+      - Fennath__Domain=example.com
+      - Fennath__Dns__Loopia__Username=user@loopiaapi
+      - Fennath__Dns__Loopia__Password=
+      - Fennath__Certificates__Email=admin@example.com
+      # Optional — uncomment to enable
+      # - Fennath__Certificates__Staging=true
+      # - Fennath__Docker__Enabled=true
+      # - Fennath__Telemetry__Endpoint=https://otlp-gateway-prod-xx.grafana.net/otlp
+      # - Fennath__Telemetry__Headers__Authorization=Basic <base64>
+
+volumes:
+  certs:
