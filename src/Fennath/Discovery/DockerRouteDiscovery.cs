@@ -20,8 +20,8 @@ namespace Fennath.Discovery;
 /// </list>
 /// </summary>
 public sealed partial class DockerRouteDiscovery(
-    IOptions<FennathConfig> options,
-    ILogger<DockerRouteDiscovery> logger) : BackgroundService, IRouteDiscovery
+    IOptions<FennathConfig> Options,
+    ILogger<DockerRouteDiscovery> Logger) : BackgroundService, IRouteDiscovery
 {
     private const string SubdomainLabel = "fennath.subdomain";
     private const string BackendLabel = "fennath.backend";
@@ -29,10 +29,10 @@ public sealed partial class DockerRouteDiscovery(
     private const string HealthCheckIntervalLabel = "fennath.healthcheck.interval";
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(15);
 
-    private readonly DockerClient _client = new DockerClientConfiguration(
-        new Uri(options.Value.Docker.SocketPath.StartsWith('/')
-            ? $"unix://{options.Value.Docker.SocketPath}"
-            : options.Value.Docker.SocketPath))
+    private readonly DockerClient Client = new DockerClientConfiguration(
+        new Uri(Options.Value.Docker.SocketPath.StartsWith('/')
+            ? $"unix://{Options.Value.Docker.SocketPath}"
+            : Options.Value.Docker.SocketPath))
         .CreateClient();
 
     private readonly Lock _lock = new();
@@ -47,17 +47,17 @@ public sealed partial class DockerRouteDiscovery(
         try
         {
             await RefreshFromRunningContainersAsync(stoppingToken);
-            LogStarted(logger, _routes.Count);
+            LogStarted(Logger, _routes.Count);
             foreach (var route in _routes)
             {
-                LogRouteAdded(logger, route.Subdomain, route.BackendUrl, route.Source);
+                LogRouteAdded(Logger, route.Subdomain, route.BackendUrl, route.Source);
             }
 
             RoutesChanged?.Invoke();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogStartFailed(logger, ex);
+            LogStartFailed(Logger, ex);
             return;
         }
 
@@ -83,14 +83,14 @@ public sealed partial class DockerRouteDiscovery(
             }
             catch (Exception ex)
             {
-                LogPollFailed(logger, ex);
+                LogPollFailed(Logger, ex);
             }
         }
     }
 
     private async Task RefreshFromRunningContainersAsync(CancellationToken ct)
     {
-        var containers = await _client.Containers.ListContainersAsync(
+        var containers = await Client.Containers.ListContainersAsync(
             new ContainersListParameters
             {
                 Filters = new Dictionary<string, IDictionary<string, bool>>
@@ -121,12 +121,12 @@ public sealed partial class DockerRouteDiscovery(
 
         foreach (var route in currSet.Except(prevSet))
         {
-            LogRouteAdded(logger, route.Subdomain, route.BackendUrl, route.Source);
+            LogRouteAdded(Logger, route.Subdomain, route.BackendUrl, route.Source);
         }
 
         foreach (var route in prevSet.Except(currSet))
         {
-            LogRouteRemoved(logger, route.Subdomain, route.Source);
+            LogRouteRemoved(Logger, route.Subdomain, route.Source);
         }
     }
 
@@ -167,7 +167,7 @@ public sealed partial class DockerRouteDiscovery(
 
     public override void Dispose()
     {
-        _client.Dispose();
+        Client.Dispose();
         base.Dispose();
     }
 

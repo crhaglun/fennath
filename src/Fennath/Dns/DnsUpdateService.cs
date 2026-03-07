@@ -10,17 +10,12 @@ namespace Fennath.Dns;
 /// Also manages subdomain records for all configured routes.
 /// </summary>
 public sealed partial class DnsUpdateService(
-    PublicIpResolver ipResolver,
-    IDnsProvider dnsProvider,
-    IOptionsMonitor<FennathConfig> optionsMonitor,
-    FennathMetrics metrics,
-    ILogger<DnsUpdateService> logger) : BackgroundService
+    PublicIpResolver IpResolver,
+    IDnsProvider DnsProvider,
+    IOptionsMonitor<FennathConfig> OptionsMonitor,
+    FennathMetrics Metrics,
+    ILogger<DnsUpdateService> Logger) : BackgroundService
 {
-    private readonly PublicIpResolver _ipResolver = ipResolver;
-    private readonly IDnsProvider _dnsProvider = dnsProvider;
-    private readonly IOptionsMonitor<FennathConfig> _optionsMonitor = optionsMonitor;
-    private readonly FennathMetrics _metrics = metrics;
-    private readonly ILogger<DnsUpdateService> _logger = logger;
     private string? _lastKnownIp;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -30,7 +25,7 @@ public sealed partial class DnsUpdateService(
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var interval = _optionsMonitor.CurrentValue.Dns.PublicIpCheckIntervalSeconds;
+            var interval = OptionsMonitor.CurrentValue.Dns.PublicIpCheckIntervalSeconds;
             await Task.Delay(TimeSpan.FromSeconds(interval), stoppingToken);
             await UpdateDnsAsync(stoppingToken);
         }
@@ -40,11 +35,11 @@ public sealed partial class DnsUpdateService(
     {
         try
         {
-            var currentIp = await _ipResolver.GetPublicIpAsync(ct);
+            var currentIp = await IpResolver.GetPublicIpAsync(ct);
 
             if (currentIp == _lastKnownIp)
             {
-                LogIpUnchanged(_logger, currentIp);
+                LogIpUnchanged(Logger, currentIp);
                 return;
             }
 
@@ -53,35 +48,35 @@ public sealed partial class DnsUpdateService(
 
             if (previousIp is not null)
             {
-                LogIpChanged(_logger, previousIp, currentIp);
-                _metrics.IpChangesTotal.Add(1);
+                LogIpChanged(Logger, previousIp, currentIp);
+                Metrics.IpChangesTotal.Add(1);
             }
             else
             {
-                LogInitialIp(_logger, currentIp);
+                LogInitialIp(Logger, currentIp);
             }
 
-            var config = _optionsMonitor.CurrentValue;
+            var config = OptionsMonitor.CurrentValue;
 
             // Update wildcard record (*.domain)
-            await _dnsProvider.UpsertARecordAsync("*", currentIp, ct: ct);
+            await DnsProvider.UpsertARecordAsync("*", currentIp, ct: ct);
 
             // Update root record (@)
-            await _dnsProvider.UpsertARecordAsync("@", currentIp, ct: ct);
+            await DnsProvider.UpsertARecordAsync("@", currentIp, ct: ct);
 
             // Update each configured subdomain (skip @ since root is already updated above)
             foreach (var route in config.Routes.Where(
                 r => !string.Equals(r.Subdomain, "@", StringComparison.Ordinal)))
             {
-                await _dnsProvider.UpsertARecordAsync(route.Subdomain, currentIp, ct: ct);
+                await DnsProvider.UpsertARecordAsync(route.Subdomain, currentIp, ct: ct);
             }
 
-            LogDnsUpdateComplete(_logger, config.Routes.Count + 2);
-            _metrics.DnsUpdatesTotal.Add(1);
+            LogDnsUpdateComplete(Logger, config.Routes.Count + 2);
+            Metrics.DnsUpdatesTotal.Add(1);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogDnsUpdateFailed(_logger, ex);
+            LogDnsUpdateFailed(Logger, ex);
         }
     }
 

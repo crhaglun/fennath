@@ -8,13 +8,11 @@ namespace Fennath.Dns;
 /// Tries multiple services for resilience (per ADR-009).
 /// </summary>
 public sealed partial class PublicIpResolver(
-    HttpClient httpClient,
+    HttpClient HttpClient,
     IOptions<FennathConfig> options,
-    ILogger<PublicIpResolver> logger)
+    ILogger<PublicIpResolver> Logger)
 {
-    private readonly HttpClient _httpClient = httpClient;
-    private readonly IReadOnlyList<string> _echoServices = options.Value.Dns.IpEchoServices;
-    private readonly ILogger<PublicIpResolver> _logger = logger;
+    private readonly IReadOnlyList<string> EchoServices = options.Value.Dns.IpEchoServices;
 
     /// <summary>
     /// Queries echo services until one responds with a valid IP.
@@ -24,24 +22,24 @@ public sealed partial class PublicIpResolver(
     {
         List<Exception>? failures = null;
 
-        foreach (var service in _echoServices)
+        foreach (var service in EchoServices)
         {
             try
             {
-                var ip = (await _httpClient.GetStringAsync(service, ct)).Trim();
+                var ip = (await HttpClient.GetStringAsync(service, ct)).Trim();
 
                 if (System.Net.IPAddress.TryParse(ip, out _))
                 {
-                    LogIpResolved(_logger, ip, service);
+                    LogIpResolved(Logger, ip, service);
                     return ip;
                 }
 
-                LogInvalidResponse(_logger, service, ip);
+                LogInvalidResponse(Logger, service, ip);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 (failures ??= []).Add(ex);
-                LogServiceFailed(_logger, service, ex);
+                LogServiceFailed(Logger, service, ex);
             }
         }
 

@@ -9,20 +9,14 @@ namespace Fennath.Certificates;
 /// and renewed before expiry. Checks daily for certificates expiring within 30 days.
 /// </summary>
 public sealed partial class CertificateRenewalService(
-    AcmeService acmeService,
-    CertificateStore certStore,
-    IOptionsMonitor<FennathConfig> optionsMonitor,
-    FennathMetrics metrics,
-    ILogger<CertificateRenewalService> logger) : BackgroundService
+    AcmeService AcmeService,
+    CertificateStore CertStore,
+    IOptionsMonitor<FennathConfig> OptionsMonitor,
+    FennathMetrics Metrics,
+    ILogger<CertificateRenewalService> Logger) : BackgroundService
 {
     private static readonly TimeSpan RenewalThreshold = TimeSpan.FromDays(30);
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(24);
-
-    private readonly AcmeService _acmeService = acmeService;
-    private readonly CertificateStore _certStore = certStore;
-    private readonly IOptionsMonitor<FennathConfig> _optionsMonitor = optionsMonitor;
-    private readonly FennathMetrics _metrics = metrics;
-    private readonly ILogger<CertificateRenewalService> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -40,14 +34,14 @@ public sealed partial class CertificateRenewalService(
     {
         try
         {
-            var config = _optionsMonitor.CurrentValue;
-            var expiries = _certStore.GetCertificateExpiries();
+            var config = OptionsMonitor.CurrentValue;
+            var expiries = CertStore.GetCertificateExpiries();
 
             // Report cert expiry metrics for all known certificates
             foreach (var (hostname, expiry) in expiries)
             {
                 var daysRemaining = (expiry - DateTime.UtcNow).TotalDays;
-                _metrics.CertExpiryDays.Record(daysRemaining,
+                Metrics.CertExpiryDays.Record(daysRemaining,
                     new KeyValuePair<string, object?>("hostname", hostname));
             }
 
@@ -68,7 +62,7 @@ public sealed partial class CertificateRenewalService(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogRenewalCheckFailed(_logger, ex);
+            LogRenewalCheckFailed(Logger, ex);
         }
     }
 
@@ -82,31 +76,31 @@ public sealed partial class CertificateRenewalService(
             var remaining = expiry - DateTime.UtcNow;
             if (remaining > RenewalThreshold)
             {
-                LogCertificateValid(_logger, hostname, remaining.Days);
+                LogCertificateValid(Logger, hostname, remaining.Days);
                 return;
             }
 
-            LogCertificateRenewing(_logger, hostname, remaining.Days);
+            LogCertificateRenewing(Logger, hostname, remaining.Days);
         }
         else
         {
-            LogCertificateProvisioning(_logger, hostname);
+            LogCertificateProvisioning(Logger, hostname);
         }
 
         try
         {
             if (hostname.StartsWith('*'))
             {
-                await _acmeService.ProvisionWildcardCertificateAsync(ct);
+                await AcmeService.ProvisionWildcardCertificateAsync(ct);
             }
             else
             {
-                await _acmeService.ProvisionCertificateAsync([hostname], ct);
+                await AcmeService.ProvisionCertificateAsync([hostname], ct);
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogProvisioningFailed(_logger, hostname, ex);
+            LogProvisioningFailed(Logger, hostname, ex);
         }
     }
 

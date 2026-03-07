@@ -9,17 +9,15 @@ namespace Fennath.Dns;
 /// https://api.loopia.se/RPCSERV.
 /// </summary>
 public sealed partial class LoopiaDnsProvider(
-    HttpClient httpClient,
+    HttpClient HttpClient,
     IOptions<FennathConfig> options,
-    ILogger<LoopiaDnsProvider> logger) : IDnsProvider
+    ILogger<LoopiaDnsProvider> Logger) : IDnsProvider
 {
     private const string ApiUrl = "https://api.loopia.se/RPCSERV";
 
-    private readonly HttpClient _httpClient = httpClient;
-    private readonly string _username = options.Value.Dns.Loopia.Username;
-    private readonly string _password = options.Value.Dns.Loopia.Password;
-    private readonly string _domain = options.Value.Domain;
-    private readonly ILogger<LoopiaDnsProvider> _logger = logger;
+    private readonly string Username = options.Value.Dns.Loopia.Username;
+    private readonly string Password = options.Value.Dns.Loopia.Password;
+    private readonly string Domain = options.Value.Domain;
 
     public async Task UpsertARecordAsync(string subdomain, string ipAddress, int ttl = 300, CancellationToken ct = default)
     {
@@ -31,7 +29,7 @@ public sealed partial class LoopiaDnsProvider(
             var match = aRecords.FirstOrDefault(r => r.Rdata == ipAddress);
             if (match is not null)
             {
-                LogARecordAlreadyCurrent(_logger, subdomain, ipAddress);
+                LogARecordAlreadyCurrent(Logger, subdomain, ipAddress);
                 return;
             }
 
@@ -48,7 +46,7 @@ public sealed partial class LoopiaDnsProvider(
         }
 
         await AddZoneRecordAsync(subdomain, "A", ipAddress, ttl, 0, ct);
-        LogARecordUpdated(_logger, subdomain, ipAddress);
+        LogARecordUpdated(Logger, subdomain, ipAddress);
     }
 
     public async Task RemoveARecordAsync(string subdomain, CancellationToken ct = default)
@@ -60,14 +58,14 @@ public sealed partial class LoopiaDnsProvider(
             await RemoveZoneRecordAsync(subdomain, record.RecordId, ct);
         }
 
-        LogARecordRemoved(_logger, subdomain);
+        LogARecordRemoved(Logger, subdomain);
     }
 
     public async Task CreateTxtRecordAsync(string subdomain, string value, int ttl = 60, CancellationToken ct = default)
     {
         await EnsureSubdomainAsync(subdomain, ct);
         await AddZoneRecordAsync(subdomain, "TXT", value, ttl, 0, ct);
-        LogTxtRecordCreated(_logger, subdomain);
+        LogTxtRecordCreated(Logger, subdomain);
     }
 
     public async Task RemoveTxtRecordAsync(string subdomain, CancellationToken ct = default)
@@ -79,7 +77,7 @@ public sealed partial class LoopiaDnsProvider(
             await RemoveZoneRecordAsync(subdomain, record.RecordId, ct);
         }
 
-        LogTxtRecordRemoved(_logger, subdomain);
+        LogTxtRecordRemoved(Logger, subdomain);
     }
 
     public async Task<IReadOnlyList<string>> GetARecordsAsync(string subdomain, CancellationToken ct = default)
@@ -93,9 +91,9 @@ public sealed partial class LoopiaDnsProvider(
     private async Task EnsureSubdomainAsync(string subdomain, CancellationToken ct)
     {
         var response = await CallAsync("addSubdomain", [
-            XmlRpcString(_username),
-            XmlRpcString(_password),
-            XmlRpcString(_domain),
+            XmlRpcString(Username),
+            XmlRpcString(Password),
+            XmlRpcString(Domain),
             XmlRpcString(subdomain),
         ], ct);
 
@@ -117,9 +115,9 @@ public sealed partial class LoopiaDnsProvider(
             ("rdata", XmlRpcString(rdata)));
 
         var response = await CallAsync("addZoneRecord", [
-            XmlRpcString(_username),
-            XmlRpcString(_password),
-            XmlRpcString(_domain),
+            XmlRpcString(Username),
+            XmlRpcString(Password),
+            XmlRpcString(Domain),
             XmlRpcString(subdomain),
             recordStruct,
         ], ct);
@@ -135,9 +133,9 @@ public sealed partial class LoopiaDnsProvider(
     private async Task RemoveZoneRecordAsync(string subdomain, int recordId, CancellationToken ct)
     {
         var response = await CallAsync("removeZoneRecord", [
-            XmlRpcString(_username),
-            XmlRpcString(_password),
-            XmlRpcString(_domain),
+            XmlRpcString(Username),
+            XmlRpcString(Password),
+            XmlRpcString(Domain),
             XmlRpcString(subdomain),
             XmlRpcInt(recordId),
         ], ct);
@@ -153,9 +151,9 @@ public sealed partial class LoopiaDnsProvider(
     internal async Task<List<ZoneRecord>> GetZoneRecordsAsync(string subdomain, CancellationToken ct)
     {
         var response = await CallAsync("getZoneRecords", [
-            XmlRpcString(_username),
-            XmlRpcString(_password),
-            XmlRpcString(_domain),
+            XmlRpcString(Username),
+            XmlRpcString(Password),
+            XmlRpcString(Domain),
             XmlRpcString(subdomain),
         ], ct);
 
@@ -173,7 +171,7 @@ public sealed partial class LoopiaDnsProvider(
                     parameters.Select(p => new XElement("param", new XElement("value", p))))));
 
         using var content = new StringContent(request.ToString(), System.Text.Encoding.UTF8, "text/xml");
-        using var response = await _httpClient.PostAsync(ApiUrl, content, ct);
+        using var response = await HttpClient.PostAsync(ApiUrl, content, ct);
         response.EnsureSuccessStatusCode();
 
         var body = await response.Content.ReadAsStringAsync(ct);

@@ -13,28 +13,23 @@ namespace Fennath.Certificates;
 /// Supports both Let's Encrypt production and staging.
 /// </summary>
 public sealed partial class AcmeService(
-    IDnsProvider dnsProvider,
-    CertificateStore certStore,
-    IOptions<FennathConfig> options,
-    ILogger<AcmeService> logger)
+    IDnsProvider DnsProvider,
+    CertificateStore CertStore,
+    IOptions<FennathConfig> Options,
+    ILogger<AcmeService> Logger)
 {
-    private readonly IDnsProvider _dnsProvider = dnsProvider;
-    private readonly CertificateStore _certStore = certStore;
-    private readonly IOptions<FennathConfig> _options = options;
-    private readonly ILogger<AcmeService> _logger = logger;
-
     /// <summary>
     /// Provisions a certificate for the given hostnames via ACME DNS-01 challenge.
     /// </summary>
     public async Task<X509Certificate2> ProvisionCertificateAsync(
         IReadOnlyList<string> hostnames, CancellationToken ct = default)
     {
-        var config = _options.Value;
+        var config = Options.Value;
         var acmeServer = config.Certificates.Staging
             ? WellKnownServers.LetsEncryptStagingV2
             : WellKnownServers.LetsEncryptV2;
 
-        LogProvisioningStarted(_logger, hostnames, acmeServer);
+        LogProvisioningStarted(Logger, hostnames, acmeServer);
 
         var acme = new AcmeContext(acmeServer);
         await acme.NewAccount(config.Certificates.Email, termsOfServiceAgreed: true);
@@ -52,16 +47,16 @@ public sealed partial class AcmeService(
             var domain = authResource.Identifier.Value;
             var challengeSubdomain = $"_acme-challenge.{domain}".Replace($".{config.Domain}", "");
 
-            LogSettingDnsChallenge(_logger, challengeSubdomain, dnsTxt);
+            LogSettingDnsChallenge(Logger, challengeSubdomain, dnsTxt);
 
-            await _dnsProvider.CreateTxtRecordAsync(challengeSubdomain, dnsTxt, ttl: 60, ct: ct);
+            await DnsProvider.CreateTxtRecordAsync(challengeSubdomain, dnsTxt, ttl: 60, ct: ct);
 
             // Wait for DNS propagation
             await Task.Delay(TimeSpan.FromSeconds(30), ct);
 
             var challengeResult = await challenge.Validate();
             var status = challengeResult.Status?.ToString() ?? "unknown";
-            LogChallengeValidated(_logger, domain, status);
+            LogChallengeValidated(Logger, domain, status);
         }
 
         // Generate certificate
@@ -79,7 +74,7 @@ public sealed partial class AcmeService(
         // Store for each hostname
         foreach (var hostname in hostnames)
         {
-            _certStore.StoreCertificate(hostname, certificate);
+            CertStore.StoreCertificate(hostname, certificate);
         }
 
         // Clean up DNS challenge records
@@ -91,15 +86,15 @@ public sealed partial class AcmeService(
 
             try
             {
-                await _dnsProvider.RemoveTxtRecordAsync(challengeSubdomain, ct);
+                await DnsProvider.RemoveTxtRecordAsync(challengeSubdomain, ct);
             }
             catch (Exception ex)
             {
-                LogChallengCleanupFailed(_logger, challengeSubdomain, ex);
+                LogChallengCleanupFailed(Logger, challengeSubdomain, ex);
             }
         }
 
-        LogProvisioningComplete(_logger, hostnames[0], certificate.NotAfter);
+        LogProvisioningComplete(Logger, hostnames[0], certificate.NotAfter);
         return certificate;
     }
 
@@ -108,7 +103,7 @@ public sealed partial class AcmeService(
     /// </summary>
     public async Task<X509Certificate2> ProvisionWildcardCertificateAsync(CancellationToken ct = default)
     {
-        var domain = _options.Value.Domain;
+        var domain = Options.Value.Domain;
         return await ProvisionCertificateAsync([$"*.{domain}", domain], ct);
     }
 
