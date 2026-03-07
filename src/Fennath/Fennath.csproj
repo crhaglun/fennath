@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Certes" />
+    <PackageReference Include="Docker.DotNet" />
     <PackageReference Include="Yarp.ReverseProxy" />
   </ItemGroup>
 </Project>

@@ -87,7 +87,9 @@ fennath/
 │   └── Fennath.Tests/
 │       ├── Unit/
 │       │   ├── ConfigValidationTests.cs
-│       │   └── RouteConflictResolutionTests.cs
+│       │   ├── RouteConflictResolutionTests.cs
+│       │   ├── CertificateStoreTests.cs
+│       │   └── DockerLabelParsingTests.cs
 │       └── Integration/
 │           └── ProxyRoutingTests.cs
 ├── docs/
@@ -187,15 +189,24 @@ Sensitive values use environment variables: `Fennath__Dns__Loopia__Password=secr
 
 **Deliverable:** DNS records stay in sync with config and public IP automatically.
 
-### Phase 4: Docker Discovery
+### Phase 4: Docker Discovery ✅
 **Goal:** Auto-register routes from Docker container labels.
 
-- [ ] Docker socket client — list running containers on startup + subscribe to events
-- [ ] `fennath.*` label parsing
-- [ ] Dynamic route registration/deregistration in YARP
-- [ ] Conflict resolution (static config wins)
+- [x] Docker socket client — list running containers on startup + subscribe to events
+- [x] `fennath.*` label parsing with comma-separated subdomain support (e.g. `fennath.subdomain=@,www`)
+- [x] Dynamic route registration/deregistration in YARP
+- [x] Conflict resolution (static config wins)
+- [x] Conditional registration (only when `Docker.Enabled` is true)
 
-**Deliverable:** `docker run --label fennath.subdomain=myapp ...` auto-creates the route.
+**Labels:**
+```
+fennath.subdomain=@,www        # comma-separated; @ = apex domain
+fennath.backend=http://app:80  # required backend URL
+fennath.healthcheck.path=/health
+fennath.healthcheck.interval=30
+```
+
+**Deliverable:** `docker run --label fennath.subdomain=myapp --label fennath.backend=http://app:80 ...` auto-creates the route.
 
 ### Phase 5: Observability
 **Goal:** Full telemetry to Grafana Cloud.

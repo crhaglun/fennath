@@ -16,7 +16,8 @@ public static class YarpConfigurator
     /// <summary>
     /// Adds YARP reverse proxy with Fennath's dynamic route management.
     /// </summary>
-    public static IServiceCollection AddFennathProxy(this IServiceCollection services)
+    public static IServiceCollection AddFennathProxy(this IServiceCollection services,
+        IConfiguration configuration)
     {
         // YARP
         var inMemoryConfig = new InMemoryConfigProvider([], []);
@@ -24,8 +25,17 @@ public static class YarpConfigurator
         services.AddSingleton<IProxyConfigProvider>(inMemoryConfig);
         services.AddReverseProxy();
 
-        // Route discovery
+        // Route discovery — static config (always)
         services.AddSingleton<IRouteDiscovery, StaticRouteDiscovery>();
+
+        // Route discovery — Docker labels (when enabled)
+        var dockerEnabled = configuration.GetValue<bool>($"{FennathConfig.SectionName}:Docker:Enabled");
+        if (dockerEnabled)
+        {
+            services.AddSingleton<DockerRouteDiscovery>();
+            services.AddSingleton<IRouteDiscovery>(sp => sp.GetRequiredService<DockerRouteDiscovery>());
+        }
+
         services.AddSingleton(sp =>
         {
             var sources = sp.GetServices<IRouteDiscovery>();

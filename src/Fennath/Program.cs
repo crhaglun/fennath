@@ -15,7 +15,7 @@ builder.Services
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<FennathConfig>, FennathConfigValidator>();
 
-builder.Services.AddFennathProxy();
+builder.Services.AddFennathProxy(builder.Configuration);
 builder.Services.AddHealthChecks();
 
 // Configure Kestrel TLS with dynamic certificate selection
@@ -34,6 +34,13 @@ builder.WebHost.ConfigureKestrel((context, serverOptions) =>
 });
 
 var app = builder.Build();
+
+// Start Docker discovery (async init: snapshot running containers + subscribe to events)
+var dockerDiscovery = app.Services.GetService<DockerRouteDiscovery>();
+if (dockerDiscovery is not null)
+{
+    await dockerDiscovery.StartAsync(CancellationToken.None);
+}
 
 // Eagerly resolve RouteAggregator to trigger initial route loading
 _ = app.Services.GetRequiredService<RouteAggregator>();
