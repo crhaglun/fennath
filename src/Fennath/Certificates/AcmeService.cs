@@ -90,7 +90,7 @@ public sealed partial class AcmeService(
             }
             catch (Exception ex)
             {
-                LogChallengCleanupFailed(Logger, challengeSubdomain, ex);
+                LogChallengeCleanupFailed(Logger, challengeSubdomain, ex);
             }
         }
 
@@ -107,18 +107,18 @@ public sealed partial class AcmeService(
         return await ProvisionCertificateAsync([$"*.{domain}", domain], ct);
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Starting certificate provisioning for {hostnames} via {server}")]
+    [LoggerMessage(EventId = 1100, Level = LogLevel.Information, Message = "Starting certificate provisioning for {hostnames} via {server}")]
     private static partial void LogProvisioningStarted(ILogger logger, IReadOnlyList<string> hostnames, Uri server);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Setting DNS-01 challenge for {subdomain}: {value}")]
+    [LoggerMessage(EventId = 1101, Level = LogLevel.Information, Message = "Setting DNS-01 challenge for {subdomain}: {value}")]
     private static partial void LogSettingDnsChallenge(ILogger logger, string subdomain, string value);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Challenge validated for {domain}: {status}")]
+    [LoggerMessage(EventId = 1102, Level = LogLevel.Information, Message = "Challenge validated for {domain}: {status}")]
     private static partial void LogChallengeValidated(ILogger logger, string domain, string status);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to clean up DNS challenge record for {subdomain}")]
-    private static partial void LogChallengCleanupFailed(ILogger logger, string subdomain, Exception ex);
+    [LoggerMessage(EventId = 1103, Level = LogLevel.Warning, Message = "Failed to clean up DNS challenge record for {subdomain}")]
+    private static partial void LogChallengeCleanupFailed(ILogger logger, string subdomain, Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Certificate provisioned for {hostname}, expires {expiry}")]
+    [LoggerMessage(EventId = 1104, Level = LogLevel.Information, Message = "Certificate provisioned for {hostname}, expires {expiry}")]
     private static partial void LogProvisioningComplete(ILogger logger, string hostname, DateTime expiry);
 }

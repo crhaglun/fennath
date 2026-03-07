@@ -21,6 +21,17 @@ services:
       - /tmp
     env_file:
       - .env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
 
   # Example backends for experimentation — traefik/whoami echoes
   # request info (headers, hostname, IP) as plain text.

@@ -82,9 +82,9 @@ return 0;
 
 internal static partial class Log
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Running with Let's Encrypt STAGING certificates (not browser-trusted)")]
+    [LoggerMessage(EventId = 1300, Level = LogLevel.Warning, Message = "Running with Let's Encrypt STAGING certificates (not browser-trusted)")]
     public static partial void StagingModeWarning(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Fennath starting for domain {domain}")]
+    [LoggerMessage(EventId = 1301, Level = LogLevel.Information, Message = "Fennath starting for domain {domain}")]
     public static partial void Starting(ILogger logger, string domain);
 }

@@ -167,18 +167,18 @@ public sealed partial class CertificateStore : IDisposable
         _selfSignedHosts.Clear();
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Certificate stored for {hostname}, expires {expiry}")]
+    [LoggerMessage(EventId = 1120, Level = LogLevel.Information, Message = "Certificate stored for {hostname}, expires {expiry}")]
     private static partial void LogCertificateStored(ILogger logger, string hostname, DateTime expiry);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded certificate for {hostname} from disk, expires {expiry}")]
+    [LoggerMessage(EventId = 1121, Level = LogLevel.Information, Message = "Loaded certificate for {hostname} from disk, expires {expiry}")]
     private static partial void LogCertificateLoaded(ILogger logger, string hostname, DateTime expiry);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Skipped expired certificate for {hostname} (expired {expiry})")]
+    [LoggerMessage(EventId = 1122, Level = LogLevel.Warning, Message = "Skipped expired certificate for {hostname} (expired {expiry})")]
     private static partial void LogCertificateExpired(ILogger logger, string hostname, DateTime expiry);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to load certificate from {path}")]
+    [LoggerMessage(EventId = 1123, Level = LogLevel.Warning, Message = "Failed to load certificate from {path}")]
     private static partial void LogCertificateLoadFailed(ILogger logger, string path, Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "No certificate for {hostname} — using temporary self-signed certificate until Let's Encrypt provisioning completes")]
+    [LoggerMessage(EventId = 1124, Level = LogLevel.Warning, Message = "No certificate for {hostname} — using temporary self-signed certificate until Let's Encrypt provisioning completes")]
     private static partial void LogSelfSignedGenerated(ILogger logger, string hostname);
 }

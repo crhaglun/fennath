@@ -57,12 +57,12 @@ public sealed partial class StaticRouteDiscovery : IRouteDiscovery, IDisposable
         _changeListener?.Dispose();
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Configuration changed, reloading routes")]
+    [LoggerMessage(EventId = 1210, Level = LogLevel.Information, Message = "Configuration changed, reloading routes")]
     private static partial void LogConfigChanged(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to reload configuration, keeping previous routes")]
+    [LoggerMessage(EventId = 1211, Level = LogLevel.Error, Message = "Failed to reload configuration, keeping previous routes")]
     private static partial void LogConfigReloadFailed(ILogger logger, Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Loaded {count} routes from static config")]
+    [LoggerMessage(EventId = 1212, Level = LogLevel.Information, Message = "Loaded {count} routes from static config")]
     private static partial void LogRoutesLoaded(ILogger logger, int count);
 }

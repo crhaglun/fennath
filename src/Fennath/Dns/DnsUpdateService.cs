@@ -80,18 +80,18 @@ public sealed partial class DnsUpdateService(
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Public IP unchanged: {ip}")]
+    [LoggerMessage(EventId = 1000, Level = LogLevel.Debug, Message = "Public IP unchanged: {ip}")]
     private static partial void LogIpUnchanged(ILogger logger, string ip);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Public IP changed from {previousIp} to {currentIp}")]
+    [LoggerMessage(EventId = 1001, Level = LogLevel.Information, Message = "Public IP changed from {previousIp} to {currentIp}")]
     private static partial void LogIpChanged(ILogger logger, string previousIp, string currentIp);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Initial public IP: {ip}")]
+    [LoggerMessage(EventId = 1002, Level = LogLevel.Information, Message = "Initial public IP: {ip}")]
     private static partial void LogInitialIp(ILogger logger, string ip);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "DNS update complete, {count} records updated")]
+    [LoggerMessage(EventId = 1003, Level = LogLevel.Information, Message = "DNS update complete, {count} records updated")]
     private static partial void LogDnsUpdateComplete(ILogger logger, int count);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "DNS update failed, will retry on next interval")]
+    [LoggerMessage(EventId = 1004, Level = LogLevel.Error, Message = "DNS update failed, will retry on next interval")]
     private static partial void LogDnsUpdateFailed(ILogger logger, Exception ex);
 }

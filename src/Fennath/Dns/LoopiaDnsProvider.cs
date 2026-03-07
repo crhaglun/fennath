@@ -240,19 +240,19 @@ public sealed partial class LoopiaDnsProvider(
 
     // -- Logging --
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "A record for '{subdomain}' already points to {ipAddress}")]
+    [LoggerMessage(EventId = 1010, Level = LogLevel.Information, Message = "A record for '{subdomain}' already points to {ipAddress}")]
     private static partial void LogARecordAlreadyCurrent(ILogger logger, string subdomain, string ipAddress);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Updated A record for '{subdomain}' to {ipAddress}")]
+    [LoggerMessage(EventId = 1011, Level = LogLevel.Information, Message = "Updated A record for '{subdomain}' to {ipAddress}")]
     private static partial void LogARecordUpdated(ILogger logger, string subdomain, string ipAddress);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Removed A record(s) for '{subdomain}'")]
+    [LoggerMessage(EventId = 1012, Level = LogLevel.Information, Message = "Removed A record(s) for '{subdomain}'")]
     private static partial void LogARecordRemoved(ILogger logger, string subdomain);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Created TXT record for '{subdomain}'")]
+    [LoggerMessage(EventId = 1013, Level = LogLevel.Information, Message = "Created TXT record for '{subdomain}'")]
     private static partial void LogTxtRecordCreated(ILogger logger, string subdomain);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Removed TXT record(s) for '{subdomain}'")]
+    [LoggerMessage(EventId = 1014, Level = LogLevel.Information, Message = "Removed TXT record(s) for '{subdomain}'")]
     private static partial void LogTxtRecordRemoved(ILogger logger, string subdomain);
 }
 

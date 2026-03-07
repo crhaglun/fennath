@@ -108,6 +108,6 @@ public sealed partial class RouteAggregator : IDisposable
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "YARP configuration updated with {count} routes")]
+    [LoggerMessage(EventId = 1220, Level = LogLevel.Information, Message = "YARP configuration updated with {count} routes")]
     private static partial void LogRoutesUpdated(ILogger logger, int count);
 }

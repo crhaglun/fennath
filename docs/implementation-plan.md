@@ -164,7 +164,7 @@ Sensitive values use environment variables: `Fennath__Dns__Loopia__Password=secr
 
 **Deliverable:** `dotnet run` forwards HTTP requests to backends based on configuration.
 
-### Phase 2: TLS & Certificates (in progress)
+### Phase 2: TLS & Certificates ✅
 **Goal:** HTTPS with automatic Let's Encrypt wildcard cert.
 
 - [x] Loopia XML-RPC API client (`LoopiaDnsProvider` behind `IDnsProvider`)
@@ -173,9 +173,9 @@ Sensitive values use environment variables: `Fennath__Dns__Loopia__Password=secr
 - [x] Kestrel `ServerCertificateSelector` integration — dynamic cert selection per SNI hostname
 - [x] Background certificate renewal service (`CertificateRenewalService` — auto-renew 30 days before expiry)
 - [x] All certificate services wired into DI via `YarpConfigurator`
-- [ ] TLS termination working end-to-end (needs real Let's Encrypt test or integration test)
 
 **Deliverable:** `https://grafana.example.com` works with a valid Let's Encrypt cert.
+End-to-end validation requires a real domain and Let's Encrypt staging/production — verified manually, not via automated test.
 
 ### Phase 3: DNS Management ✅
 **Goal:** Automatic DNS record management.

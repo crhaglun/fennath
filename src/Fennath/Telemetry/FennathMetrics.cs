@@ -36,6 +36,15 @@ public sealed class FennathMetrics
         BackendHealth = _meter.CreateGauge<int>(
             "fennath.backend.health",
             description: "Backend health status per route (1=up, 0=down)");
+
+        RequestsTotal = _meter.CreateCounter<long>(
+            "fennath.requests.total",
+            description: "Total proxied requests by route and status code");
+
+        RequestDuration = _meter.CreateHistogram<double>(
+            "fennath.request.duration",
+            unit: "ms",
+            description: "Proxied request duration by route");
     }
 
     /// <summary>Counter for DNS record update operations.</summary>
@@ -49,4 +58,10 @@ public sealed class FennathMetrics
 
     /// <summary>Gauge reporting backend health per route (1=up, 0=down).</summary>
     public Gauge<int> BackendHealth { get; }
+
+    /// <summary>Counter for total proxied requests by route and status code.</summary>
+    public Counter<long> RequestsTotal { get; }
+
+    /// <summary>Histogram for proxied request duration by route.</summary>
+    public Histogram<double> RequestDuration { get; }
 }

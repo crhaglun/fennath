@@ -104,18 +104,18 @@ public sealed partial class CertificateRenewalService(
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Certificate for {hostname} valid for {daysRemaining} more days")]
+    [LoggerMessage(EventId = 1110, Level = LogLevel.Debug, Message = "Certificate for {hostname} valid for {daysRemaining} more days")]
     private static partial void LogCertificateValid(ILogger logger, string hostname, int daysRemaining);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Renewing certificate for {hostname} ({daysRemaining} days remaining)")]
+    [LoggerMessage(EventId = 1111, Level = LogLevel.Information, Message = "Renewing certificate for {hostname} ({daysRemaining} days remaining)")]
     private static partial void LogCertificateRenewing(ILogger logger, string hostname, int daysRemaining);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "No certificate found for {hostname}, provisioning")]
+    [LoggerMessage(EventId = 1112, Level = LogLevel.Information, Message = "No certificate found for {hostname}, provisioning")]
     private static partial void LogCertificateProvisioning(ILogger logger, string hostname);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to provision/renew certificate for {hostname}")]
+    [LoggerMessage(EventId = 1113, Level = LogLevel.Error, Message = "Failed to provision/renew certificate for {hostname}")]
     private static partial void LogProvisioningFailed(ILogger logger, string hostname, Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Certificate renewal check failed")]
+    [LoggerMessage(EventId = 1114, Level = LogLevel.Error, Message = "Certificate renewal check failed")]
     private static partial void LogRenewalCheckFailed(ILogger logger, Exception ex);
 }

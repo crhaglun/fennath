@@ -47,12 +47,12 @@ public sealed partial class PublicIpResolver(
             "All IP echo services failed. Check network connectivity.", failures ?? []);
     }
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Public IP resolved to {ip} via {service}")]
+    [LoggerMessage(EventId = 1020, Level = LogLevel.Debug, Message = "Public IP resolved to {ip} via {service}")]
     private static partial void LogIpResolved(ILogger logger, string ip, string service);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "IP echo service {service} returned invalid response: '{response}'")]
+    [LoggerMessage(EventId = 1021, Level = LogLevel.Warning, Message = "IP echo service {service} returned invalid response: '{response}'")]
     private static partial void LogInvalidResponse(ILogger logger, string service, string response);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "IP echo service {service} failed")]
+    [LoggerMessage(EventId = 1022, Level = LogLevel.Warning, Message = "IP echo service {service} failed")]
     private static partial void LogServiceFailed(ILogger logger, string service, Exception ex);
 }
