@@ -164,10 +164,10 @@ Sensitive values use environment variables: `Fennath__Dns__Loopia__Password=secr
 
 **Deliverable:** `dotnet run` forwards HTTP requests to backends based on configuration.
 
-### Phase 2: TLS & Certificates
+### Phase 2: TLS & Certificates (in progress)
 **Goal:** HTTPS with automatic Let's Encrypt wildcard cert.
 
-- [ ] Loopia XML-RPC API client (`LoopiaDnsProvider` behind `IDnsProvider`)
+- [x] Loopia XML-RPC API client (`LoopiaDnsProvider` behind `IDnsProvider`)
 - [ ] ACME DNS-01 challenge solver using Loopia
 - [ ] Certes integration — account creation, CSR, certificate download
 - [ ] Wildcard certificate provisioning from Let's Encrypt
