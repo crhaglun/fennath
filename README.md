@@ -81,7 +81,11 @@ Sensitive values (API passwords, OTel tokens) use environment variables:
 
 ```bash
 export Fennath__Dns__Loopia__Password=your-api-password
-export Fennath__Telemetry__Headers__Authorization="Basic ..."
+
+# OpenTelemetry uses standard OTEL_* variables
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-xx.grafana.net/otlp
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic ..."
+export OTEL_SERVICE_NAME=fennath
 ```
 
 ### Docker Label Discovery

@@ -135,11 +135,6 @@ for cross-field validation. See `appsettings.example.json` at the repo root.
       }
     ],
     "Docker": { "Enabled": true, "SocketPath": "/var/run/docker.sock" },
-    "Telemetry": {
-      "Endpoint": "https://otlp-gateway-prod-xx.grafana.net/otlp",
-      "Protocol": "grpc",
-      "ServiceName": "fennath"
-    },
     "Server": {
       "HttpsPort": 443,
       "HttpPort": 80,

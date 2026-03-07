@@ -28,8 +28,11 @@ services:
       # Optional — uncomment to enable
       # - Fennath__Certificates__Staging=true
       # - Fennath__Docker__Enabled=true
-      # - Fennath__Telemetry__Endpoint=https://otlp-gateway-prod-xx.grafana.net/otlp
-      # - Fennath__Telemetry__Headers__Authorization=Basic <base64>
+      # OpenTelemetry — uses standard OTEL_* environment variables
+      # - OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-xx.grafana.net/otlp
+      # - OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic <base64>
+      # - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      # - OTEL_SERVICE_NAME=fennath
 
 volumes:
   certs:

@@ -15,7 +15,6 @@ public sealed class FennathConfig
     public CertificateConfig Certificates { get; set; } = new();
     public List<RouteEntry> Routes { get; set; } = [];
     public DockerConfig Docker { get; set; } = new();
-    public TelemetryConfig Telemetry { get; set; } = new();
     public ServerConfig Server { get; set; } = new();
 }
 
@@ -73,14 +72,6 @@ public sealed class DockerConfig
 {
     public bool Enabled { get; set; }
     public string SocketPath { get; set; } = "/var/run/docker.sock";
-}
-
-public sealed class TelemetryConfig
-{
-    public string? Endpoint { get; set; }
-    public string Protocol { get; set; } = "grpc";
-    public Dictionary<string, string> Headers { get; set; } = [];
-    public string ServiceName { get; set; } = "fennath";
 }
 
 public sealed class ServerConfig

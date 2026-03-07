@@ -19,7 +19,7 @@ builder.Services.AddSingleton<IValidateOptions<FennathConfig>, FennathConfigVali
 // Graceful shutdown — allow in-flight requests to drain before terminating
 builder.Services.Configure<HostOptions>(opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(30));
 
-builder.Services.AddFennathTelemetry(builder.Configuration);
+builder.Services.AddFennathTelemetry();
 builder.Services.AddFennathProxy(builder.Configuration);
 builder.Services.AddHealthChecks();
 
