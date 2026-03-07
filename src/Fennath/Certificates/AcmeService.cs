@@ -21,7 +21,6 @@ public sealed partial class AcmeService(
     FennathMetrics Metrics,
     ILogger<AcmeService> Logger)
 {
-    private static readonly TimeSpan ChallengeTimeout = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// Provisions a certificate for the given hostnames via ACME DNS-01 challenge.
@@ -111,35 +110,24 @@ public sealed partial class AcmeService(
 
     private async Task WaitForChallengeAsync(IChallengeContext challenge, string domain, CancellationToken ct)
     {
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(ChallengeTimeout);
-
-        try
+        while (true)
         {
-            while (true)
+            var resource = await challenge.Resource();
+            LogChallengePolling(Logger, domain, resource.Status);
+
+            if (resource.Status == ChallengeStatus.Valid)
             {
-                var resource = await challenge.Resource();
-                LogChallengePolling(Logger, domain, resource.Status);
-
-                if (resource.Status == ChallengeStatus.Valid)
-                {
-                    LogChallengeValidated(Logger, domain);
-                    return;
-                }
-
-                if (resource.Status == ChallengeStatus.Invalid)
-                {
-                    throw new InvalidOperationException(
-                        $"ACME challenge failed for {domain}: {resource.Error?.Detail}");
-                }
-
-                await Task.Delay(TimeSpan.FromSeconds(5), timeout.Token);
+                LogChallengeValidated(Logger, domain);
+                return;
             }
-        }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            throw new TimeoutException(
-                $"ACME challenge for {domain} did not complete within {ChallengeTimeout.TotalMinutes} minutes");
+
+            if (resource.Status == ChallengeStatus.Invalid)
+            {
+                throw new InvalidOperationException(
+                    $"ACME challenge failed for {domain}: {resource.Error?.Detail}");
+            }
+
+            await Task.Delay(TimeSpan.FromMinutes(2), ct);
         }
     }
 
