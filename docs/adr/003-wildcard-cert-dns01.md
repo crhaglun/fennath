@@ -19,9 +19,8 @@ of a single wildcard cert outweighs the theoretical risk.
 
 ## Decision
 
-We will use a **wildcard certificate as the default**, obtained via **DNS-01 challenge** through
-the Loopia XML-RPC API. Individual per-subdomain certificates can be configured as an override
-for sensitive services.
+We will use a **wildcard certificate**, obtained via **DNS-01 challenge** through
+the Loopia XML-RPC API.
 
 The DNS-01 flow:
 1. Certes requests a challenge from Let's Encrypt for `*.example.com`
@@ -36,7 +35,6 @@ The DNS-01 flow:
 - One certificate covers all current and future subdomains — no cert management per service.
 - Adding a new subdomain requires zero certificate work.
 - One renewal cycle instead of N (simpler, less API calls, less to monitor).
-- Per-subdomain override available for services that need isolated certificates.
 
 **Negative:**
 - Requires DNS API access (Loopia XML-RPC) — see ADR-004.

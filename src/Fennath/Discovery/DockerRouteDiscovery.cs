@@ -7,14 +7,14 @@ namespace Fennath.Discovery;
 
 /// <summary>
 /// Discovers routes from Docker container labels by polling the Docker API.
-/// Containers opt in with <c>fennath.subdomain</c> and <c>fennath.backend</c> labels.
+/// Containers opt in with <c>fennath.subdomain</c> label. The backend URL is
+/// derived from the container name and optional <c>fennath.port</c> label.
 ///
 /// <para>Supported labels:</para>
 /// <list type="bullet">
 ///   <item><c>fennath.subdomain</c> — required; comma-separated list of subdomains
 ///     (e.g. "www", "@,www", "grafana"). Use "@" for the apex/root domain.</item>
-///   <item><c>fennath.backend</c> — required; the backend URL
-///     (e.g. "http://localhost:3000" or "http://172.17.0.2:8080").</item>
+///   <item><c>fennath.port</c> — optional; backend port (default 80).</item>
 ///   <item><c>fennath.healthcheck.path</c> — optional; health check path.</item>
 ///   <item><c>fennath.healthcheck.interval</c> — optional; health check interval in seconds.</item>
 /// </list>
@@ -24,7 +24,7 @@ public sealed partial class DockerRouteDiscovery(
     ILogger<DockerRouteDiscovery> Logger) : BackgroundService, IRouteDiscovery
 {
     private const string SubdomainLabel = "fennath.subdomain";
-    private const string BackendLabel = "fennath.backend";
+    private const string PortLabel = "fennath.port";
     private const string HealthCheckPathLabel = "fennath.healthcheck.path";
     private const string HealthCheckIntervalLabel = "fennath.healthcheck.interval";
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(15);
@@ -71,9 +71,12 @@ public sealed partial class DockerRouteDiscovery(
                 await RefreshFromRunningContainersAsync(stoppingToken);
                 var current = _routes;
 
-                if (HasChanges(previous, current))
+                if (HasChanges(previous, current, out var added, out var removed))
                 {
-                    LogChanges(previous, current);
+                    foreach (var route in added)
+                        LogRouteAdded(Logger, route.Subdomain, route.BackendUrl, route.Source);
+                    foreach (var route in removed)
+                        LogRouteRemoved(Logger, route.Subdomain, route.Source);
                     RoutesChanged?.Invoke();
                 }
             }
@@ -102,7 +105,8 @@ public sealed partial class DockerRouteDiscovery(
         var routes = new List<DiscoveredRoute>();
         foreach (var container in containers)
         {
-            routes.AddRange(ParseContainerRoutes(container.ID[..12], container.Labels));
+            var name = container.Names.FirstOrDefault()?.TrimStart('/') ?? container.ID[..12];
+            routes.AddRange(ParseContainerRoutes(container.ID[..12], name, container.Labels));
         }
 
         lock (_lock)
@@ -111,27 +115,21 @@ public sealed partial class DockerRouteDiscovery(
         }
     }
 
-    private static bool HasChanges(IReadOnlyList<DiscoveredRoute> previous, IReadOnlyList<DiscoveredRoute> current) =>
-        !previous.ToHashSet().SetEquals(current);
-
-    private void LogChanges(IReadOnlyList<DiscoveredRoute> previous, IReadOnlyList<DiscoveredRoute> current)
+    private static bool HasChanges(
+        IReadOnlyList<DiscoveredRoute> previous,
+        IReadOnlyList<DiscoveredRoute> current,
+        out IEnumerable<DiscoveredRoute> added,
+        out IEnumerable<DiscoveredRoute> removed)
     {
         var prevSet = previous.ToHashSet();
         var currSet = current.ToHashSet();
-
-        foreach (var route in currSet.Except(prevSet))
-        {
-            LogRouteAdded(Logger, route.Subdomain, route.BackendUrl, route.Source);
-        }
-
-        foreach (var route in prevSet.Except(currSet))
-        {
-            LogRouteRemoved(Logger, route.Subdomain, route.Source);
-        }
+        added = currSet.Except(prevSet);
+        removed = prevSet.Except(currSet);
+        return !prevSet.SetEquals(currSet);
     }
 
     internal static List<DiscoveredRoute> ParseContainerRoutes(
-        string containerId, IDictionary<string, string> labels)
+        string containerId, string containerName, IDictionary<string, string> labels)
     {
         if (!labels.TryGetValue(SubdomainLabel, out var subdomainValue)
             || string.IsNullOrWhiteSpace(subdomainValue))
@@ -139,11 +137,11 @@ public sealed partial class DockerRouteDiscovery(
             return [];
         }
 
-        if (!labels.TryGetValue(BackendLabel, out var backend)
-            || string.IsNullOrWhiteSpace(backend))
-        {
-            return [];
-        }
+        var port = labels.TryGetValue(PortLabel, out var portStr)
+            && int.TryParse(portStr, out var parsedPort)
+            ? parsedPort
+            : 80;
+        var backend = $"http://{containerName}:{port}";
 
         labels.TryGetValue(HealthCheckPathLabel, out var healthPath);
         int? healthInterval = labels.TryGetValue(HealthCheckIntervalLabel, out var intervalStr)

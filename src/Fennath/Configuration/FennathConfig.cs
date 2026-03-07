@@ -13,7 +13,6 @@ public sealed class FennathConfig
     public required string Domain { get; set; }
     public DnsConfig Dns { get; set; } = new();
     public CertificateConfig Certificates { get; set; } = new();
-    public List<RouteEntry> Routes { get; set; } = [];
     public DockerConfig Docker { get; set; } = new();
     public ServerConfig Server { get; set; } = new();
 }
@@ -40,32 +39,8 @@ public sealed class LoopiaConfig
 public sealed class CertificateConfig
 {
     public string Email { get; set; } = "";
-    public bool Wildcard { get; set; } = true;
     public bool Staging { get; set; }
     public string StoragePath { get; set; } = "/data/certs";
-}
-
-public sealed class RouteEntry
-{
-    [Required]
-    public required string Subdomain { get; set; }
-
-    [Required, Url]
-    public required string Backend { get; set; }
-
-    public HealthCheckEntry? HealthCheck { get; set; }
-    public RouteCertificateConfig? Certificate { get; set; }
-}
-
-public sealed class HealthCheckEntry
-{
-    public string Path { get; set; } = "/";
-    public int IntervalSeconds { get; set; } = 30;
-}
-
-public sealed class RouteCertificateConfig
-{
-    public string Mode { get; set; } = "wildcard";
 }
 
 public sealed class DockerConfig

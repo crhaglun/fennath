@@ -31,8 +31,7 @@ public sealed partial class AcmeService(
 
         LogProvisioningStarted(Logger, hostnames, acmeServer);
 
-        var acme = new AcmeContext(acmeServer);
-        await acme.NewAccount(config.Certificates.Email, termsOfServiceAgreed: true);
+        var acme = await GetOrCreateAcmeContextAsync(acmeServer, config);
 
         var order = await acme.NewOrder(hostnames.ToList());
 
@@ -45,7 +44,7 @@ public sealed partial class AcmeService(
 
             var authResource = await auth.Resource();
             var domain = authResource.Identifier.Value;
-            var challengeSubdomain = $"_acme-challenge.{domain}".Replace($".{config.Domain}", "");
+            var challengeSubdomain = ChallengeSubdomain(domain, config.Domain);
 
             LogSettingDnsChallenge(Logger, challengeSubdomain, dnsTxt);
 
@@ -82,7 +81,7 @@ public sealed partial class AcmeService(
         {
             var authResource = await auth.Resource();
             var domain = authResource.Identifier.Value;
-            var challengeSubdomain = $"_acme-challenge.{domain}".Replace($".{config.Domain}", "");
+            var challengeSubdomain = ChallengeSubdomain(domain, config.Domain);
 
             try
             {
@@ -107,6 +106,33 @@ public sealed partial class AcmeService(
         return await ProvisionCertificateAsync([$"*.{domain}", domain], ct);
     }
 
+    private async Task<AcmeContext> GetOrCreateAcmeContextAsync(Uri acmeServer, FennathConfig config)
+    {
+        var keyPath = Path.Combine(config.Certificates.StoragePath, "acme-account.pem");
+
+        if (File.Exists(keyPath))
+        {
+            var pem = await File.ReadAllTextAsync(keyPath);
+            var accountKey = KeyFactory.FromPem(pem);
+            var acme = new AcmeContext(acmeServer, accountKey);
+            await acme.Account();
+            LogAccountKeyLoaded(Logger, keyPath);
+            return acme;
+        }
+
+        var newAcme = new AcmeContext(acmeServer);
+        await newAcme.NewAccount(config.Certificates.Email, termsOfServiceAgreed: true);
+
+        Directory.CreateDirectory(config.Certificates.StoragePath);
+        await File.WriteAllTextAsync(keyPath, newAcme.AccountKey.ToPem());
+        LogAccountKeyCreated(Logger, keyPath);
+
+        return newAcme;
+    }
+
+    internal static string ChallengeSubdomain(string domain, string rootDomain) =>
+        $"_acme-challenge.{domain}".Replace($".{rootDomain}", "");
+
     [LoggerMessage(EventId = 1100, Level = LogLevel.Information, Message = "Starting certificate provisioning for {hostnames} via {server}")]
     private static partial void LogProvisioningStarted(ILogger logger, IReadOnlyList<string> hostnames, Uri server);
 
@@ -121,4 +147,10 @@ public sealed partial class AcmeService(
 
     [LoggerMessage(EventId = 1104, Level = LogLevel.Information, Message = "Certificate provisioned for {hostname}, expires {expiry}")]
     private static partial void LogProvisioningComplete(ILogger logger, string hostname, DateTime expiry);
+
+    [LoggerMessage(EventId = 1105, Level = LogLevel.Information, Message = "Loaded existing ACME account key from {path}")]
+    private static partial void LogAccountKeyLoaded(ILogger logger, string path);
+
+    [LoggerMessage(EventId = 1106, Level = LogLevel.Information, Message = "Created new ACME account, key saved to {path}")]
+    private static partial void LogAccountKeyCreated(ILogger logger, string path);
 }

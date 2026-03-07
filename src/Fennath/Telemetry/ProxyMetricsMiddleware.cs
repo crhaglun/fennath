@@ -18,12 +18,11 @@ public sealed class ProxyMetricsMiddleware(RequestDelegate Next, FennathMetrics 
         stopwatch.Stop();
 
         var route = context.GetReverseProxyFeature()?.Route?.Config?.RouteId ?? "unknown";
-        var statusCode = context.Response.StatusCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         var tags = new TagList
         {
             { "route", route },
-            { "http.response.status_code", statusCode }
+            { "http.response.status_code", context.Response.StatusCode }
         };
 
         Metrics.RequestsTotal.Add(1, tags);

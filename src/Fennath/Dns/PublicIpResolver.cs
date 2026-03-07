@@ -1,3 +1,4 @@
+using System.Net;
 using Fennath.Configuration;
 using Microsoft.Extensions.Options;
 
@@ -28,7 +29,7 @@ public sealed partial class PublicIpResolver(
             {
                 var ip = (await HttpClient.GetStringAsync(service, ct)).Trim();
 
-                if (System.Net.IPAddress.TryParse(ip, out _))
+                if (IPAddress.TryParse(ip, out _))
                 {
                     LogIpResolved(Logger, ip, service);
                     return ip;

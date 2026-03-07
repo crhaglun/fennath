@@ -13,7 +13,7 @@ DNS records, and route discovery so your toy projects can stay simple.
 - **Reverse proxy with TLS termination** — backends run plain HTTP, Fennath handles HTTPS
 - **Automatic Let's Encrypt certificates** — wildcard certs via DNS-01 challenge, zero manual renewal
 - **DNS management via Loopia API** — automatic A record updates when your public IP changes
-- **Route discovery** — static config (appsettings.json), plus optional Docker label auto-discovery
+- **Route discovery** — automatic Docker label auto-discovery
 - **Full observability** — OpenTelemetry traces, metrics, and logs to Grafana Cloud
 - **HTTP → HTTPS redirect** — automatic redirect with configurable toggle
 - **Graceful shutdown** — in-flight requests drain before termination
@@ -34,7 +34,7 @@ cd fennath
 cp appsettings.example.json appsettings.local.json
 ```
 
-Edit `appsettings.local.json` with your domain, Loopia credentials, routes, and
+Edit `appsettings.local.json` with your domain, Loopia credentials, and
 (optionally) Grafana Cloud telemetry endpoint. Sensitive values should use environment
 variables instead of the config file.
 
@@ -66,11 +66,7 @@ Configuration uses the standard .NET configuration system. Copy
 ```json
 {
   "Fennath": {
-    "Domain": "example.com",
-    "Routes": [
-      { "Subdomain": "grafana", "Backend": "http://localhost:3000" },
-      { "Subdomain": "git", "Backend": "http://192.168.1.50:3000" }
-    ]
+    "Domain": "example.com"
   }
 }
 ```
@@ -93,17 +89,18 @@ export OTEL_SERVICE_NAME=fennath
 
 ### Docker Label Discovery
 
-Fennath auto-discovers routes from running Docker containers:
+Fennath discovers routes from running Docker containers via labels:
 
 ```bash
 docker run -d \
   --label fennath.subdomain=myapp \
-  --label fennath.backend=http://myapp:8080 \
+  --label fennath.port=8080 \
   --label fennath.healthcheck.path=/health \
   my-app:latest
 ```
 
-Static config routes take precedence over Docker-discovered routes for the same subdomain.
+The backend URL is derived from the container name and port (`http://{container_name}:{port}`).
+The `fennath.port` label defaults to 80 if omitted.
 
 ### Staging Certificates
 

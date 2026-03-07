@@ -45,20 +45,8 @@ public sealed partial class CertificateRenewalService(
                     new KeyValuePair<string, object?>("hostname", hostname));
             }
 
-            if (config.Certificates.Wildcard)
-            {
-                var wildcardHost = $"*.{config.Domain}";
-                await EnsureCertificateAsync(wildcardHost, expiries, ct);
-            }
-            else
-            {
-                // Per-subdomain certificates
-                foreach (var route in config.Routes)
-                {
-                    var host = $"{route.Subdomain}.{config.Domain}";
-                    await EnsureCertificateAsync(host, expiries, ct);
-                }
-            }
+            var wildcardHost = $"*.{config.Domain}";
+            await EnsureCertificateAsync(wildcardHost, expiries, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

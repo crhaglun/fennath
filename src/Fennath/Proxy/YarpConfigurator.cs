@@ -25,9 +25,6 @@ public static class YarpConfigurator
         services.AddSingleton<IProxyConfigProvider>(inMemoryConfig);
         services.AddReverseProxy();
 
-        // Route discovery — static config (always)
-        services.AddSingleton<IRouteDiscovery, StaticRouteDiscovery>();
-
         // Route discovery — Docker labels
         services.AddSingleton<DockerRouteDiscovery>();
         services.AddSingleton<IRouteDiscovery>(sp => sp.GetRequiredService<DockerRouteDiscovery>());

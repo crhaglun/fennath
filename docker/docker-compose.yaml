@@ -40,7 +40,6 @@ services:
     container_name: app-one
     labels:
       - "fennath.subdomain=one"
-      - "fennath.backend=http://app-one:80"
       - "fennath.healthcheck.path=/health"
 
   app-two:
@@ -49,7 +48,6 @@ services:
     command: --name app-two
     labels:
       - "fennath.subdomain=two"
-      - "fennath.backend=http://app-two:80"
 
 volumes:
   certs:

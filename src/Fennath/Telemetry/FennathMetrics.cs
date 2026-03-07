@@ -47,21 +47,10 @@ public sealed class FennathMetrics
             description: "Proxied request duration by route");
     }
 
-    /// <summary>Counter for DNS record update operations.</summary>
     public Counter<long> DnsUpdatesTotal { get; }
-
-    /// <summary>Counter for detected public IP changes.</summary>
     public Counter<long> IpChangesTotal { get; }
-
-    /// <summary>Gauge reporting days until certificate expiry, per hostname.</summary>
     public Gauge<double> CertExpiryDays { get; }
-
-    /// <summary>Gauge reporting backend health per route (1=up, 0=down).</summary>
     public Gauge<int> BackendHealth { get; }
-
-    /// <summary>Counter for total proxied requests by route and status code.</summary>
     public Counter<long> RequestsTotal { get; }
-
-    /// <summary>Histogram for proxied request duration by route.</summary>
     public Histogram<double> RequestDuration { get; }
 }

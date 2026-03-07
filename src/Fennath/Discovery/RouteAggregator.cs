@@ -5,7 +5,6 @@ namespace Fennath.Discovery;
 /// <summary>
 /// Merges routes from all IRouteDiscovery sources and pushes updates
 /// to YARP's InMemoryConfigProvider.
-/// Static routes take precedence over other sources for the same subdomain.
 /// </summary>
 public sealed partial class RouteAggregator : IDisposable
 {
@@ -90,13 +89,13 @@ public sealed partial class RouteAggregator : IDisposable
     }
 
     /// <summary>
-    /// Merges routes from all sources. Static routes win over non-static for the same subdomain.
+    /// Deduplicates routes by subdomain, keeping the first occurrence.
     /// </summary>
     internal static List<DiscoveredRoute> Merge(List<DiscoveredRoute> allRoutes)
     {
         return allRoutes
             .GroupBy(r => r.Subdomain, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.OrderByDescending(r => r.Source == "static").First())
+            .Select(g => g.First())
             .ToList();
     }
 

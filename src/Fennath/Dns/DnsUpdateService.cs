@@ -6,8 +6,7 @@ namespace Fennath.Dns;
 
 /// <summary>
 /// Background service that periodically checks the public IP and updates
-/// DNS A records via IDnsProvider when the IP changes.
-/// Also manages subdomain records for all configured routes.
+/// DNS A records (wildcard + root) via IDnsProvider when the IP changes.
 /// </summary>
 public sealed partial class DnsUpdateService(
     PublicIpResolver IpResolver,
@@ -43,12 +42,9 @@ public sealed partial class DnsUpdateService(
                 return;
             }
 
-            var previousIp = _lastKnownIp;
-            _lastKnownIp = currentIp;
-
-            if (previousIp is not null)
+            if (_lastKnownIp is not null)
             {
-                LogIpChanged(Logger, previousIp, currentIp);
+                LogIpChanged(Logger, _lastKnownIp, currentIp);
                 Metrics.IpChangesTotal.Add(1);
             }
             else
@@ -56,7 +52,7 @@ public sealed partial class DnsUpdateService(
                 LogInitialIp(Logger, currentIp);
             }
 
-            var config = OptionsMonitor.CurrentValue;
+            _lastKnownIp = currentIp;
 
             // Update wildcard record (*.domain)
             await DnsProvider.UpsertARecordAsync("*", currentIp, ct: ct);
@@ -64,14 +60,7 @@ public sealed partial class DnsUpdateService(
             // Update root record (@)
             await DnsProvider.UpsertARecordAsync("@", currentIp, ct: ct);
 
-            // Update each configured subdomain (skip @ since root is already updated above)
-            foreach (var route in config.Routes.Where(
-                r => !string.Equals(r.Subdomain, "@", StringComparison.Ordinal)))
-            {
-                await DnsProvider.UpsertARecordAsync(route.Subdomain, currentIp, ct: ct);
-            }
-
-            LogDnsUpdateComplete(Logger, config.Routes.Count + 2);
+            LogDnsUpdateComplete(Logger, 2);
             Metrics.DnsUpdatesTotal.Add(1);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

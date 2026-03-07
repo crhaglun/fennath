@@ -18,11 +18,13 @@ public sealed partial class CertificateStore : IDisposable
     private readonly ConcurrentDictionary<string, X509Certificate2> _certs = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, bool> _selfSignedHosts = new(StringComparer.OrdinalIgnoreCase);
     private readonly string _storagePath;
+    private readonly string _domain;
     private readonly ILogger<CertificateStore> _logger;
 
     public CertificateStore(IOptions<FennathConfig> options, ILogger<CertificateStore> logger)
     {
         _storagePath = options.Value.Certificates.StoragePath;
+        _domain = options.Value.Domain;
         _logger = logger;
 
         Directory.CreateDirectory(_storagePath);
@@ -50,7 +52,17 @@ public sealed partial class CertificateStore : IDisposable
         }
 
         // No real certificate — generate a temporary self-signed fallback
-        return GetOrCreateSelfSigned(hostname);
+        // only for hostnames under our configured domain
+        if (IsKnownDomain(hostname))
+            return GetOrCreateSelfSigned(hostname);
+
+        return null;
+    }
+
+    private bool IsKnownDomain(string hostname)
+    {
+        return string.Equals(hostname, _domain, StringComparison.OrdinalIgnoreCase)
+            || hostname.EndsWith($".{_domain}", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

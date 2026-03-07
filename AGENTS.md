@@ -28,7 +28,7 @@ fennath/
 │   ├── Proxy/                # YARP integration and health checks
 │   ├── Certificates/         # ACME/Let's Encrypt cert management
 │   ├── Dns/                  # Loopia XML-RPC DNS provider
-│   ├── Discovery/            # Route discovery (static + Docker)
+│   ├── Discovery/            # Route discovery (Docker labels)
 │   └── Telemetry/            # OpenTelemetry setup and custom metrics
 ├── tests/Fennath.Tests/      # Unit and integration tests
 ├── docs/                     # Design documents and ADRs
@@ -82,7 +82,7 @@ These abstractions are central to the architecture — implementations can be sw
 the interfaces should remain stable:
 
 - `IDnsProvider` — DNS record management (Loopia is the current implementation)
-- `IRouteDiscovery` — route source (static config, Docker labels)
+- `IRouteDiscovery` — route source (Docker labels)
 
 ### Building and Running
 ```bash

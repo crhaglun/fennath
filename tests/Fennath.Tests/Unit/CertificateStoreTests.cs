@@ -23,8 +23,7 @@ public class CertificateStoreTests : IDisposable
             {
                 Email = "test@example.com",
                 StoragePath = _tempDir
-            },
-            Routes = []
+            }
         });
 
         _store = new CertificateStore(options, NullLogger<CertificateStore>.Instance);
@@ -118,8 +117,7 @@ public class CertificateStoreTests : IDisposable
             {
                 Email = "test@example.com",
                 StoragePath = _tempDir
-            },
-            Routes = []
+            }
         });
 
         using var newStore = new CertificateStore(options, NullLogger<CertificateStore>.Instance);
@@ -147,8 +145,7 @@ public class CertificateStoreTests : IDisposable
             {
                 Email = "test@example.com",
                 StoragePath = _tempDir
-            },
-            Routes = []
+            }
         });
 
         using var newStore = new CertificateStore(options, NullLogger<CertificateStore>.Instance);

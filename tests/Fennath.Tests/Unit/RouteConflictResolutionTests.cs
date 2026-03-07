@@ -5,28 +5,13 @@ namespace Fennath.Tests.Unit;
 public class RouteConflictResolutionTests
 {
     [Test]
-    public async Task Static_route_wins_over_docker_route_for_same_subdomain()
-    {
-        var routes = new List<DiscoveredRoute>
-        {
-            new("myapp", "http://static:8080", "static"),
-            new("myapp", "http://docker:9090", "docker"),
-        };
-
-        var merged = RouteAggregator.Merge(routes);
-
-        await Assert.That(merged).Count().IsEqualTo(1);
-        await Assert.That(merged[0].BackendUrl).IsEqualTo("http://static:8080");
-    }
-
-    [Test]
     public async Task Routes_from_different_subdomains_are_all_kept()
     {
         var routes = new List<DiscoveredRoute>
         {
-            new("grafana", "http://localhost:3000", "static"),
+            new("grafana", "http://localhost:3000", "docker"),
             new("git", "http://localhost:3001", "docker"),
-            new("api", "http://localhost:8080", "static"),
+            new("api", "http://localhost:8080", "docker"),
         };
 
         var merged = RouteAggregator.Merge(routes);
@@ -39,8 +24,8 @@ public class RouteConflictResolutionTests
     {
         var routes = new List<DiscoveredRoute>
         {
-            new("MyApp", "http://static:8080", "static"),
-            new("myapp", "http://docker:9090", "docker"),
+            new("MyApp", "http://container1:8080", "docker"),
+            new("myapp", "http://container2:9090", "docker"),
         };
 
         var merged = RouteAggregator.Merge(routes);
@@ -68,6 +53,7 @@ public class RouteConflictResolutionTests
         var merged = RouteAggregator.Merge(routes);
 
         await Assert.That(merged).Count().IsEqualTo(1);
+        await Assert.That(merged[0].BackendUrl).IsEqualTo("http://container1:8080");
     }
 
     [Test]
@@ -75,7 +61,7 @@ public class RouteConflictResolutionTests
     {
         var routes = new List<DiscoveredRoute>
         {
-            new("grafana", "http://localhost:3000", "static", "/api/health", 60),
+            new("grafana", "http://localhost:3000", "docker", "/api/health", 60),
         };
 
         var merged = RouteAggregator.Merge(routes);
@@ -90,8 +76,8 @@ public class RouteConflictResolutionTests
     {
         var routes = new List<DiscoveredRoute>
         {
-            new(DiscoveredRoute.ApexMarker, "http://localhost:8080", "static"),
-            new("grafana", "http://localhost:3000", "static"),
+            new(DiscoveredRoute.ApexMarker, "http://localhost:8080", "docker"),
+            new("grafana", "http://localhost:3000", "docker"),
         };
 
         var merged = RouteAggregator.Merge(routes);
@@ -99,20 +85,5 @@ public class RouteConflictResolutionTests
         await Assert.That(merged).Count().IsEqualTo(2);
         var apex = merged.First(r => r.IsApex);
         await Assert.That(apex.BackendUrl).IsEqualTo("http://localhost:8080");
-    }
-
-    [Test]
-    public async Task Apex_route_conflict_resolution_follows_same_rules()
-    {
-        var routes = new List<DiscoveredRoute>
-        {
-            new(DiscoveredRoute.ApexMarker, "http://static:80", "static"),
-            new(DiscoveredRoute.ApexMarker, "http://docker:80", "docker"),
-        };
-
-        var merged = RouteAggregator.Merge(routes);
-
-        await Assert.That(merged).Count().IsEqualTo(1);
-        await Assert.That(merged[0].BackendUrl).IsEqualTo("http://static:80");
     }
 }
