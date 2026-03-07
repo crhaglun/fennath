@@ -14,7 +14,7 @@ DNS records, and route discovery so your toy projects can stay simple.
 - **Automatic Let's Encrypt certificates** — wildcard certs via DNS-01 challenge, zero manual renewal
 - **DNS management via Loopia API** — automatic A record updates when your public IP changes
 - **Route discovery** — automatic Docker label auto-discovery
-- **Full observability** — OpenTelemetry traces, metrics, and logs to Grafana Cloud
+- **Full observability** — OpenTelemetry traces, metrics, and logs via OTLP
 - **HTTP → HTTPS redirect** — automatic redirect with configurable toggle
 - **Graceful shutdown** — in-flight requests drain before termination
 
@@ -35,7 +35,7 @@ cp appsettings.example.json appsettings.local.json
 ```
 
 Edit `appsettings.local.json` with your domain, Loopia credentials, and
-(optionally) Grafana Cloud telemetry endpoint. Sensitive values should use environment
+(optionally) OpenTelemetry OTLP endpoint. Sensitive values should use environment
 variables instead of the config file.
 
 ### 2. Deploy with Docker Compose
@@ -82,7 +82,7 @@ Sensitive values (API passwords, OTel tokens) use environment variables:
 export Fennath__Dns__Loopia__Password=your-api-password
 
 # OpenTelemetry uses standard OTEL_* variables
-export OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-xx.grafana.net/otlp
+export OTEL_EXPORTER_OTLP_ENDPOINT=https://your-otlp-endpoint/otlp
 export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic ..."
 export OTEL_SERVICE_NAME=fennath
 ```

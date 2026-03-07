@@ -14,7 +14,7 @@
 | DNS Management     | Loopia XML-RPC API                            |
 | Config Format      | Standard .NET IConfiguration / Options pattern |
 | Container Runtime  | Docker / Docker Compose                       |
-| Observability      | OpenTelemetry SDK → Grafana Cloud (OTLP)      |
+| Observability      | OpenTelemetry SDK (OTLP export)               |
 | Host OS            | Linux (directly on public internet)           |
 | Test Framework     | TUnit                                         |
 
@@ -42,7 +42,7 @@ Internet
 │  └───────────────────────────────────────────┘       │
 │                                                     │
 │  ┌───────────────────────────────────────────┐       │
-│  │ OpenTelemetry → Grafana Cloud             │       │
+│  │ OpenTelemetry (OTLP export)               │       │
 │  │  traces + metrics + logs                  │       │
 │  └───────────────────────────────────────────┘       │
 └────────────────────────────────────────────────────┘
@@ -206,15 +206,14 @@ fennath.healthcheck.interval=30
 **Deliverable:** `docker run --label fennath.subdomain=myapp --label fennath.backend=http://app:80 ...` auto-creates the route.
 
 ### Phase 5: Observability ✅
-**Goal:** Full telemetry to Grafana Cloud.
+**Goal:** Full observability via OpenTelemetry.
 
 - [x] OpenTelemetry SDK setup with OTLP gRPC exporter
 - [x] Request traces with W3C TraceContext propagation
 - [x] Custom metrics (requests, latency, backend health, cert expiry, DNS updates)
 - [x] Structured log export via OTel
-- [x] Grafana Cloud integration verified
 
-**Deliverable:** Grafana dashboards showing request flow, error rates, and system health.
+**Deliverable:** Traces, metrics, and logs exported via OTLP.
 
 ### Phase 6: Hardening & Polish ✅
 **Goal:** Production-ready deployment.
