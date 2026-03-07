@@ -24,16 +24,11 @@ builder.Services.AddFennathProxy(builder.Configuration);
 builder.Services.AddHealthChecks();
 
 // Configure Kestrel TLS with dynamic certificate selection
-builder.WebHost.ConfigureKestrel((context, serverOptions) =>
+builder.WebHost.ConfigureKestrel((_, serverOptions) =>
 {
-    var fennathConfig = context.Configuration
-        .GetSection(FennathConfig.SectionName)
-        .Get<FennathConfig>();
+    var config = serverOptions.ApplicationServices.GetRequiredService<IOptions<FennathConfig>>().Value;
 
-    var httpsPort = fennathConfig?.Server.HttpsPort ?? 443;
-    var httpPort = fennathConfig?.Server.HttpPort ?? 80;
-
-    serverOptions.ListenAnyIP(httpsPort, listenOptions =>
+    serverOptions.ListenAnyIP(config.Server.HttpsPort, listenOptions =>
     {
         listenOptions.UseHttps(httpsOptions =>
         {
@@ -42,7 +37,7 @@ builder.WebHost.ConfigureKestrel((context, serverOptions) =>
         });
     });
 
-    serverOptions.ListenAnyIP(httpPort);
+    serverOptions.ListenAnyIP(config.Server.HttpPort);
 });
 
 var app = builder.Build();
