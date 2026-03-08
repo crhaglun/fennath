@@ -29,9 +29,9 @@ public class ProxyRoutingTests : IAsyncDisposable
     [Test]
     public async Task Request_with_matching_host_header_is_proxied_to_backend()
     {
-        using var fennath = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
+        await using var ctx = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
 
-        var client = fennath.GetTestClient();
+        var client = ctx.CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/");
         request.Headers.Host = "grafana.example.com";
 
@@ -45,9 +45,9 @@ public class ProxyRoutingTests : IAsyncDisposable
     [Test]
     public async Task Request_with_unknown_host_returns_not_found()
     {
-        using var fennath = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
+        await using var ctx = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
 
-        var client = fennath.GetTestClient();
+        var client = ctx.CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/");
         request.Headers.Host = "unknown.example.com";
 
@@ -59,9 +59,9 @@ public class ProxyRoutingTests : IAsyncDisposable
     [Test]
     public async Task Healthz_endpoint_returns_healthy()
     {
-        using var fennath = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
+        await using var ctx = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
 
-        var client = fennath.GetTestClient();
+        var client = ctx.CreateClient();
 
         var response = await client.GetAsync("/healthz");
 
@@ -76,11 +76,11 @@ public class ProxyRoutingTests : IAsyncDisposable
             endpoints.MapGet("/", () => "hello from backend2");
         });
 
-        using var fennath = await FennathTestHost.CreateAsync(
+        await using var ctx = await FennathTestHost.CreateAsync(
             ("grafana", _backend.Url),
             ("git", backend2.Url));
 
-        var client = fennath.GetTestClient();
+        var client = ctx.CreateClient();
 
         var req1 = new HttpRequestMessage(HttpMethod.Get, "/");
         req1.Headers.Host = "grafana.example.com";
@@ -96,9 +96,9 @@ public class ProxyRoutingTests : IAsyncDisposable
     [Test]
     public async Task Apex_route_matches_bare_domain()
     {
-        using var fennath = await FennathTestHost.CreateAsync(("@", _backend.Url));
+        await using var ctx = await FennathTestHost.CreateAsync(("@", _backend.Url));
 
-        var client = fennath.GetTestClient();
+        var client = ctx.CreateClient();
         var request = new HttpRequestMessage(HttpMethod.Get, "/");
         request.Headers.Host = "example.com";
 

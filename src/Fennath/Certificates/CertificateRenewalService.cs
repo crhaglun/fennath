@@ -13,6 +13,7 @@ public sealed partial class CertificateRenewalService(
     CertificateStore CertStore,
     IOptionsMonitor<FennathConfig> OptionsMonitor,
     FennathMetrics Metrics,
+    TimeProvider TimeProvider,
     ILogger<CertificateRenewalService> Logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -21,7 +22,7 @@ public sealed partial class CertificateRenewalService(
         {
             await EnsureCertificateAsync(stoppingToken);
             var interval = OptionsMonitor.CurrentValue.Certificates.RenewalCheckIntervalSeconds;
-            await Task.Delay(TimeSpan.FromSeconds(interval), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(interval), TimeProvider, stoppingToken);
         } while (!stoppingToken.IsCancellationRequested);
     }
 

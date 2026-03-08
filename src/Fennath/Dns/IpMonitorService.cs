@@ -13,6 +13,7 @@ public sealed partial class IpMonitorService(
     DnsCommandChannel Channel,
     IOptionsMonitor<FennathConfig> OptionsMonitor,
     FennathMetrics Metrics,
+    TimeProvider TimeProvider,
     ILogger<IpMonitorService> Logger) : BackgroundService
 {
     private string? _lastKnownIp;
@@ -23,7 +24,7 @@ public sealed partial class IpMonitorService(
         {
             await CheckIpAsync(stoppingToken);
             var interval = OptionsMonitor.CurrentValue.Dns.PublicIpCheckIntervalSeconds;
-            await Task.Delay(TimeSpan.FromSeconds(interval), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(interval), TimeProvider, stoppingToken);
         } while (!stoppingToken.IsCancellationRequested);
     }
 

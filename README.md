@@ -15,7 +15,7 @@ DNS records, and route discovery so your toy projects can stay simple.
 - **DNS management via Loopia API** — automatic A record updates when your public IP changes
 - **Route discovery** — automatic Docker label auto-discovery
 - **Full observability** — OpenTelemetry traces, metrics, and logs via OTLP
-- **HTTP → HTTPS redirect** — automatic redirect with configurable toggle
+- **HTTP → HTTPS redirect** — automatic redirect for all HTTP traffic
 
 Built with AI support, reviewed and critizised by human.
 
