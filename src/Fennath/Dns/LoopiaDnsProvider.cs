@@ -231,8 +231,28 @@ public sealed partial class LoopiaDnsProvider(
 
     // -- Response parsing --
 
+    /// <summary>
+    /// Parses an XML-RPC response, detecting fault responses and extracting the status string.
+    /// </summary>
     private static string ParseStringResponse(XDocument doc)
     {
+        // Check for XML-RPC fault response first
+        var fault = doc.Descendants("fault").FirstOrDefault();
+        if (fault is not null)
+        {
+            var members = fault.Descendants("member")
+                .ToDictionary(
+                    m => m.Element("name")!.Value,
+                    m => m.Element("value")!);
+
+            var faultCode = members.TryGetValue("faultCode", out var codeEl)
+                ? GetIntValue(codeEl) : -1;
+            var faultString = members.TryGetValue("faultString", out var strEl)
+                ? GetStringValue(strEl) : "unknown";
+
+            return $"FAULT({faultCode}): {faultString}";
+        }
+
         return doc.Descendants("string").FirstOrDefault()?.Value
             ?? throw new InvalidOperationException("Unexpected XML-RPC response: no string value found.");
     }
