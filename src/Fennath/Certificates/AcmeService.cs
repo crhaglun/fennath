@@ -205,4 +205,7 @@ public sealed partial class AcmeService(
 
     [LoggerMessage(EventId = 1109, Level = LogLevel.Information, Message = "Challenge status for {domain}: {status}")]
     private static partial void LogChallengePolling(ILogger logger, string domain, ChallengeStatus? status);
+
+    [LoggerMessage(EventId = 1120, Level = LogLevel.Warning, Message = "ACME challenge invalid for {domain} (likely DNS caching), will retry: {detail}")]
+    private static partial void LogChallengeInvalid(ILogger logger, string domain, string? detail);
 }
