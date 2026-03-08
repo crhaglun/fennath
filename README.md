@@ -24,7 +24,7 @@ Built with AI support, reviewed and critizised by human.
 ### Prerequisites
 
 - A domain managed by [Loopia](https://www.loopia.se/) with API credentials
-- A Linux host with a public IP and ports 80/443 open
+- A Linux host with a public IP and ports 80/443 reachable from the internet
 - Docker and Docker Compose installed
 
 ### 1. Clone and configure
