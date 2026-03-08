@@ -20,7 +20,8 @@ builder.Services.Configure<HostOptions>(opts => opts.ShutdownTimeout = TimeSpan.
 
 builder.Services.AddFennathTelemetry();
 builder.Services.AddFennathProxy(builder.Configuration);
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddCheck<Fennath.Proxy.CertificateHealthCheck>("certificate");
 
 // Configure Kestrel TLS with dynamic certificate selection
 builder.WebHost.ConfigureKestrel((_, serverOptions) =>
@@ -57,8 +58,11 @@ app.MapReverseProxy(proxyPipeline =>
 
 Log.Starting(app.Logger, config.EffectiveDomain);
 
-// Ensure a valid certificate exists before accepting traffic.
-// DNS-01 challenges don't need the web server, so we block here on first launch.
+await app.StartAsync();
+
+// Ensure a valid certificate exists before accepting HTTPS traffic.
+// The host is already running (OTel active, /healthz available on HTTP)
+// but TLS handshakes will fail until a cert is provisioned.
 if (app.Services.GetRequiredService<CertificateStore>().GetExpiry() is null)
 {
     Log.ProvisioningCertificate(app.Logger, config.EffectiveDomain);
@@ -69,11 +73,12 @@ if (app.Services.GetRequiredService<CertificateStore>().GetExpiry() is null)
     catch (Exception ex)
     {
         Log.ProvisioningFailed(app.Logger, ex);
+        await app.StopAsync();
         return 1;
     }
 }
 
-await app.RunAsync();
+await app.WaitForShutdownAsync();
 
 return 0;
 
