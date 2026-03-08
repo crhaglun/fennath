@@ -2,6 +2,7 @@ using Docker.DotNet;
 using Docker.DotNet.Models;
 using Fennath.Configuration;
 using Fennath.Dns;
+using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
 namespace Fennath.Discovery;
@@ -45,6 +46,8 @@ public sealed partial class DockerRouteDiscovery(
         {
             try
             {
+                using var activity = FennathMetrics.ActivitySource.StartActivity("fennath.docker-poll");
+
                 var previous = _routes;
                 await RefreshFromRunningContainersAsync(stoppingToken);
                 var current = _routes;

@@ -29,6 +29,7 @@ public sealed partial class IpMonitorService(
 
     private async Task CheckIpAsync(CancellationToken ct)
     {
+        using var activity = FennathMetrics.ActivitySource.StartActivity("fennath.ip-check");
         try
         {
             var currentIp = await IpResolver.GetPublicIpAsync(ct);

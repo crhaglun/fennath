@@ -27,6 +27,7 @@ public sealed partial class CertificateRenewalService(
 
     private async Task EnsureCertificateAsync(CancellationToken ct)
     {
+        using var activity = FennathMetrics.ActivitySource.StartActivity("fennath.cert-renewal-check");
         try
         {
             var wildcardHost = $"*.{OptionsMonitor.CurrentValue.Domain}";

@@ -28,6 +28,9 @@ public sealed partial class AcmeService(
     public async Task<X509Certificate2> ProvisionCertificateAsync(
         IReadOnlyList<string> hostnames, CancellationToken ct = default)
     {
+        using var activity = FennathMetrics.ActivitySource.StartActivity("fennath.acme-provision");
+        activity?.SetTag("hostnames", string.Join(",", hostnames));
+
         var config = Options.Value;
         var acmeServer = config.Certificates.Staging
             ? WellKnownServers.LetsEncryptStagingV2

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
 namespace Fennath.Telemetry;
@@ -10,6 +11,7 @@ namespace Fennath.Telemetry;
 public sealed class FennathMetrics
 {
     public const string MeterName = "Fennath";
+    public static readonly ActivitySource ActivitySource = new(MeterName);
 
     private readonly Meter _meter;
 

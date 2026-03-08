@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Fennath.Telemetry;
 
 namespace Fennath.Dns;
@@ -22,6 +23,9 @@ public sealed partial class DnsReconciliationService(
         {
             try
             {
+                using var activity = FennathMetrics.ActivitySource.StartActivity("fennath.dns-command");
+                activity?.SetTag("command", command.GetType().Name);
+
                 switch (command)
                 {
                     case DnsCommand.IpChanged(var newIp):
