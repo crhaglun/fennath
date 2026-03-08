@@ -89,13 +89,13 @@ public sealed class CertificateConfig
     /// visible at public DNS resolvers before giving up.
     /// </summary>
     [Range(1, int.MaxValue)]
-    public int DnsPropagationTimeoutSeconds { get; set; } = 300;
+    public int DnsPropagationTimeoutSeconds { get; set; } = 86400;
 
     /// <summary>
     /// How often (seconds) to query public resolvers while waiting for propagation.
     /// </summary>
     [Range(1, int.MaxValue)]
-    public int DnsPropagationPollingIntervalSeconds { get; set; } = 10;
+    public int DnsPropagationPollingIntervalSeconds { get; set; } = 60;
 
     [Range(1, int.MaxValue)]
     public int ChallengePollingIntervalSeconds { get; set; } = 120;
