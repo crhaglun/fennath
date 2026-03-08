@@ -6,100 +6,57 @@ using Microsoft.Extensions.Options;
 namespace Fennath.Dns;
 
 /// <summary>
-/// Event-driven DNS reconciliation. Waits for signals from IpMonitorService or
-/// DockerRouteDiscovery, then ensures A records match the desired state.
+/// Periodically reads shared state (current IP from <see cref="IpMonitorService"/>,
+/// routes from <see cref="IRouteDiscovery"/> sources) and reconciles DNS A records.
 ///
-/// Fast path (signal-triggered): creates missing A records and updates IP on all
-/// managed records. Never deletes — container restarts don't cause DNS outages.
-///
-/// Slow path (24h timeout): full reconciliation including removal of stale records
-/// for subdomains that no longer have active containers.
+/// Each poll cycle: creates missing records and updates all records if IP changed.
+/// Full reconciliation (including stale record removal) runs on a longer interval.
 /// </summary>
 public sealed partial class DnsReconciliationService(
-    PublicIpResolver IpResolver,
+    IpMonitorService IpMonitor,
     IEnumerable<IRouteDiscovery> RouteSources,
     IDnsProvider DnsProvider,
-    DnsReconciliationTrigger Trigger,
     FennathMetrics Metrics,
-    IOptions<FennathConfig> Options,
+    IOptionsMonitor<FennathConfig> OptionsMonitor,
     ILogger<DnsReconciliationService> Logger) : BackgroundService
 {
     private readonly HashSet<string> _managedSubdomains = new(StringComparer.OrdinalIgnoreCase);
-    private string? _currentIp;
+    private string? _lastReconciledIp;
+    private DateTime _lastFullReconciliation = DateTime.MinValue;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Initial sync: ensure all current routes have A records
-        await ReconcileAdditiveAsync(stoppingToken);
-
-        while (!stoppingToken.IsCancellationRequested)
+        do
         {
-            var reconciliationInterval = TimeSpan.FromSeconds(
-                Options.Value.Dns.ReconciliationIntervalSeconds);
-
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-            timeoutCts.CancelAfter(reconciliationInterval);
-
-            bool signaled;
-            try
-            {
-                signaled = await Trigger.Reader.WaitToReadAsync(timeoutCts.Token);
-            }
-            catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
-            {
-                // Timeout — run full reconciliation including stale record cleanup
-                await ReconcileFullAsync(stoppingToken);
-                continue;
-            }
-
-            if (!signaled)
-            {
-                continue;
-            }
-
-            // Drain all pending signals
-            while (Trigger.Reader.TryRead(out _)) { }
-
-            await ReconcileAdditiveAsync(stoppingToken);
-        }
+            await ReconcileAsync(stoppingToken);
+            var interval = OptionsMonitor.CurrentValue.Dns.ReconciliationPollIntervalSeconds;
+            await Task.Delay(TimeSpan.FromSeconds(interval), stoppingToken);
+        } while (!stoppingToken.IsCancellationRequested);
     }
 
-    /// <summary>
-    /// Fast path: ensure all desired A records exist. Never deletes.
-    /// </summary>
-    private async Task ReconcileAdditiveAsync(CancellationToken ct)
+    private async Task ReconcileAsync(CancellationToken ct)
     {
         try
         {
-            var currentIp = await IpResolver.GetPublicIpAsync(ct);
-            var ipChanged = currentIp != _currentIp;
-            _currentIp = currentIp;
-
-            var desiredSubdomains = GetDesiredSubdomains();
-            var newSubdomains = desiredSubdomains.Except(_managedSubdomains, StringComparer.OrdinalIgnoreCase).ToList();
-
-            // Create records for new subdomains
-            foreach (var sub in newSubdomains)
+            var currentIp = IpMonitor.CurrentIp;
+            if (currentIp is null)
             {
-                LogCreatingRecord(Logger, sub, currentIp);
-                await DnsProvider.UpsertARecordAsync(sub, currentIp, ct: ct);
-                _managedSubdomains.Add(sub);
-                Metrics.DnsRecordsCreated.Add(1);
+                LogWaitingForIp(Logger);
+                return;
             }
 
-            // If IP changed, update all managed records
-            if (ipChanged && _managedSubdomains.Count > 0)
+            var fullReconciliationDue = (DateTime.UtcNow - _lastFullReconciliation).TotalSeconds
+                >= OptionsMonitor.CurrentValue.Dns.ReconciliationIntervalSeconds;
+
+            if (fullReconciliationDue)
             {
-                LogIpChangedUpdatingAll(Logger, currentIp, _managedSubdomains.Count);
-                foreach (var sub in _managedSubdomains)
-                {
-                    await DnsProvider.UpsertARecordAsync(sub, currentIp, ct: ct);
-                }
-
-                Metrics.DnsUpdatesTotal.Add(1);
+                await ReconcileFullAsync(currentIp, ct);
+                _lastFullReconciliation = DateTime.UtcNow;
             }
-
-            LogAdditiveReconciliationComplete(Logger, _managedSubdomains.Count, newSubdomains.Count);
+            else
+            {
+                await ReconcileAdditiveAsync(currentIp, ct);
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -107,63 +64,74 @@ public sealed partial class DnsReconciliationService(
         }
     }
 
-    /// <summary>
-    /// Slow path: full reconciliation including removal of stale records.
-    /// </summary>
-    private async Task ReconcileFullAsync(CancellationToken ct)
+    private async Task ReconcileAdditiveAsync(string currentIp, CancellationToken ct)
     {
-        try
+        var ipChanged = currentIp != _lastReconciledIp;
+        _lastReconciledIp = currentIp;
+
+        var desiredSubdomains = GetDesiredSubdomains();
+        var newSubdomains = desiredSubdomains.Except(_managedSubdomains, StringComparer.OrdinalIgnoreCase).ToList();
+
+        foreach (var sub in newSubdomains)
         {
-            var currentIp = await IpResolver.GetPublicIpAsync(ct);
-            _currentIp = currentIp;
+            LogCreatingRecord(Logger, sub, currentIp);
+            await DnsProvider.UpsertARecordAsync(sub, currentIp, ct: ct);
+            _managedSubdomains.Add(sub);
+            Metrics.DnsRecordsCreated.Add(1);
+        }
 
-            var desiredSubdomains = GetDesiredSubdomains();
-            var staleSubdomains = _managedSubdomains.Except(desiredSubdomains, StringComparer.OrdinalIgnoreCase).ToList();
-            var newSubdomains = desiredSubdomains.Except(_managedSubdomains, StringComparer.OrdinalIgnoreCase).ToList();
-
-            // Create missing records
-            foreach (var sub in newSubdomains)
-            {
-                LogCreatingRecord(Logger, sub, currentIp);
-                await DnsProvider.UpsertARecordAsync(sub, currentIp, ct: ct);
-                _managedSubdomains.Add(sub);
-                Metrics.DnsRecordsCreated.Add(1);
-            }
-
-            // Remove stale records
-            foreach (var sub in staleSubdomains)
-            {
-                LogRemovingStaleRecord(Logger, sub);
-                await DnsProvider.RemoveARecordAsync(sub, ct: ct);
-                _managedSubdomains.Remove(sub);
-                Metrics.DnsRecordsRemoved.Add(1);
-            }
-
-            // Ensure all records have current IP
+        if (ipChanged && _managedSubdomains.Count > 0)
+        {
+            LogIpChangedUpdatingAll(Logger, currentIp, _managedSubdomains.Count);
             foreach (var sub in _managedSubdomains)
             {
                 await DnsProvider.UpsertARecordAsync(sub, currentIp, ct: ct);
             }
 
-            LogFullReconciliationComplete(Logger, _managedSubdomains.Count, newSubdomains.Count, staleSubdomains.Count);
+            Metrics.DnsUpdatesTotal.Add(1);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+    }
+
+    private async Task ReconcileFullAsync(string currentIp, CancellationToken ct)
+    {
+        _lastReconciledIp = currentIp;
+
+        var desiredSubdomains = GetDesiredSubdomains();
+        var staleSubdomains = _managedSubdomains.Except(desiredSubdomains, StringComparer.OrdinalIgnoreCase).ToList();
+        var newSubdomains = desiredSubdomains.Except(_managedSubdomains, StringComparer.OrdinalIgnoreCase).ToList();
+
+        foreach (var sub in newSubdomains)
         {
-            LogReconciliationFailed(Logger, ex);
+            LogCreatingRecord(Logger, sub, currentIp);
+            await DnsProvider.UpsertARecordAsync(sub, currentIp, ct: ct);
+            _managedSubdomains.Add(sub);
+            Metrics.DnsRecordsCreated.Add(1);
         }
+
+        foreach (var sub in staleSubdomains)
+        {
+            LogRemovingStaleRecord(Logger, sub);
+            await DnsProvider.RemoveARecordAsync(sub, ct: ct);
+            _managedSubdomains.Remove(sub);
+            Metrics.DnsRecordsRemoved.Add(1);
+        }
+
+        foreach (var sub in _managedSubdomains)
+        {
+            await DnsProvider.UpsertARecordAsync(sub, currentIp, ct: ct);
+        }
+
+        LogFullReconciliationComplete(Logger, _managedSubdomains.Count, newSubdomains.Count, staleSubdomains.Count);
     }
 
     private HashSet<string> GetDesiredSubdomains()
     {
-        var domain = Options.Value.Domain;
         var subdomains = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "@" };
 
         foreach (var source in RouteSources)
         {
             foreach (var route in source.GetRoutes())
             {
-                // Map DiscoveredRoute subdomain to DNS subdomain
-                // "@" stays as "@" (root), others are used as-is
                 subdomains.Add(route.Subdomain);
             }
         }
@@ -180,12 +148,12 @@ public sealed partial class DnsReconciliationService(
     [LoggerMessage(EventId = 1032, Level = LogLevel.Information, Message = "Removing stale A record for {subdomain}")]
     private static partial void LogRemovingStaleRecord(ILogger logger, string subdomain);
 
-    [LoggerMessage(EventId = 1033, Level = LogLevel.Debug, Message = "Additive reconciliation complete: {totalManaged} managed records, {newCount} created")]
-    private static partial void LogAdditiveReconciliationComplete(ILogger logger, int totalManaged, int newCount);
-
     [LoggerMessage(EventId = 1034, Level = LogLevel.Information, Message = "Full reconciliation complete: {totalManaged} managed, {newCount} created, {staleCount} removed")]
     private static partial void LogFullReconciliationComplete(ILogger logger, int totalManaged, int newCount, int staleCount);
 
-    [LoggerMessage(EventId = 1035, Level = LogLevel.Error, Message = "DNS reconciliation failed, will retry on next trigger")]
+    [LoggerMessage(EventId = 1035, Level = LogLevel.Error, Message = "DNS reconciliation failed, will retry next cycle")]
     private static partial void LogReconciliationFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(EventId = 1036, Level = LogLevel.Debug, Message = "Waiting for IP monitor to resolve public IP")]
+    private static partial void LogWaitingForIp(ILogger logger);
 }

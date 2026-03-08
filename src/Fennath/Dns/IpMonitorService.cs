@@ -5,17 +5,16 @@ using Microsoft.Extensions.Options;
 namespace Fennath.Dns;
 
 /// <summary>
-/// Background service that periodically checks the public IP and signals
-/// DnsReconciliationTrigger when the IP changes.
+/// Background service that periodically checks the public IP.
+/// Exposes <see cref="CurrentIp"/> for other services to read.
 /// </summary>
 public sealed partial class IpMonitorService(
     PublicIpResolver IpResolver,
-    DnsReconciliationTrigger Trigger,
     IOptionsMonitor<FennathConfig> OptionsMonitor,
     FennathMetrics Metrics,
     ILogger<IpMonitorService> Logger) : BackgroundService
 {
-    private string? _lastKnownIp;
+    public string? CurrentIp { get; private set; }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -33,15 +32,15 @@ public sealed partial class IpMonitorService(
         {
             var currentIp = await IpResolver.GetPublicIpAsync(ct);
 
-            if (currentIp == _lastKnownIp)
+            if (currentIp == CurrentIp)
             {
                 LogIpUnchanged(Logger, currentIp);
                 return;
             }
 
-            if (_lastKnownIp is not null)
+            if (CurrentIp is not null)
             {
-                LogIpChanged(Logger, _lastKnownIp, currentIp);
+                LogIpChanged(Logger, CurrentIp, currentIp);
                 Metrics.IpChangesTotal.Add(1);
             }
             else
@@ -49,8 +48,7 @@ public sealed partial class IpMonitorService(
                 LogInitialIp(Logger, currentIp);
             }
 
-            _lastKnownIp = currentIp;
-            Trigger.Signal("ip-changed");
+            CurrentIp = currentIp;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

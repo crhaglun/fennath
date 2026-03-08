@@ -1,5 +1,4 @@
 using Docker.DotNet;
-using Fennath.Dns;
 using Docker.DotNet.Models;
 using Fennath.Configuration;
 using Microsoft.Extensions.Options;
@@ -20,7 +19,6 @@ namespace Fennath.Discovery;
 /// </summary>
 public sealed partial class DockerRouteDiscovery(
     IOptionsMonitor<FennathConfig> OptionsMonitor,
-    DnsReconciliationTrigger DnsTrigger,
     ILogger<DockerRouteDiscovery> Logger) : BackgroundService, IRouteDiscovery
 {
     private const string SubdomainLabel = "fennath.subdomain";
@@ -52,7 +50,6 @@ public sealed partial class DockerRouteDiscovery(
                 if (LogAndDetectChanges(previous, current))
                 {
                     RoutesChanged?.Invoke();
-                    DnsTrigger.Signal("routes-changed");
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

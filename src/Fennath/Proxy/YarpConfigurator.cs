@@ -46,8 +46,8 @@ public static class YarpConfigurator
         services.AddSingleton<IDnsProvider>(sp => sp.GetRequiredService<LoopiaDnsProvider>());
         services.AddHttpClient<PublicIpResolver>(client => client.Timeout = TimeSpan.FromSeconds(30));
         services.AddSingleton<PublicIpResolver>();
-        services.AddSingleton<DnsReconciliationTrigger>();
-        services.AddHostedService<IpMonitorService>();
+        services.AddSingleton<IpMonitorService>();
+        services.AddHostedService(sp => sp.GetRequiredService<IpMonitorService>());
         services.AddHostedService<DnsReconciliationService>();
 
         // Certificates

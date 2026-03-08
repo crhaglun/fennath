@@ -23,6 +23,7 @@ public sealed class DnsConfig
     public LoopiaConfig Loopia { get; set; } = new();
     public int PublicIpCheckIntervalSeconds { get; set; } = 300;
     public int ReconciliationIntervalSeconds { get; set; } = 86400;
+    public int ReconciliationPollIntervalSeconds { get; set; } = 30;
     public List<string> IpEchoServices { get; set; } =
     [
         "https://api.ipify.org",
