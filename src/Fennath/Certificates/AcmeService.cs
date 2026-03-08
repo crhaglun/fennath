@@ -200,9 +200,9 @@ public sealed partial class AcmeService(
     [LoggerMessage(EventId = 1107, Level = LogLevel.Warning, Message = "Using Let's Encrypt STAGING — certificate will NOT be browser-trusted")]
     private static partial void LogStagingWarning(ILogger logger);
 
-    [LoggerMessage(EventId = 1108, Level = LogLevel.Debug, Message = "Waiting for DNS propagation for {domain}")]
+    [LoggerMessage(EventId = 1108, Level = LogLevel.Information, Message = "Waiting for DNS propagation for {domain}")]
     private static partial void LogWaitingForDnsPropagation(ILogger logger, string domain);
 
-    [LoggerMessage(EventId = 1109, Level = LogLevel.Debug, Message = "Challenge status for {domain}: {status}")]
+    [LoggerMessage(EventId = 1109, Level = LogLevel.Information, Message = "Challenge status for {domain}: {status}")]
     private static partial void LogChallengePolling(ILogger logger, string domain, ChallengeStatus? status);
 }
