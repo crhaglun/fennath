@@ -92,14 +92,6 @@ public sealed partial class LoopiaDnsProvider(
     {
         var registrarSub = ToRegistrarSubdomain(subdomain, Prefix);
         await EnsureSubdomainAsync(registrarSub, ct);
-
-        // Remove any stale TXT records (e.g., from a previous failed ACME run)
-        var existing = await GetZoneRecordsAsync(registrarSub, ct);
-        foreach (var stale in existing.Where(r => r.Type == "TXT"))
-        {
-            await RemoveZoneRecordAsync(registrarSub, stale.RecordId, ct);
-        }
-
         await AddZoneRecordAsync(registrarSub, "TXT", value, ttl, 0, ct);
         LogTxtRecordCreated(Logger, subdomain);
     }
