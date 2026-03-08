@@ -168,7 +168,8 @@ These are deliberately out of scope per the ADRs:
 | `Fennath__Certificates__StoragePath` | /data/certs | Certificate storage directory |
 | `Fennath__Certificates__RenewalCheckIntervalSeconds` | 86400 | How often to check cert expiry |
 | `Fennath__Certificates__RenewalThresholdDays` | 30 | Days before expiry to trigger renewal |
-| `Fennath__Certificates__DnsPropagationWaitSeconds` | 30 | Wait after TXT record creation |
+| `Fennath__Certificates__DnsPropagationTimeoutSeconds` | 300 | Max time to wait for TXT record visibility at public resolvers |
+| `Fennath__Certificates__DnsPropagationPollingIntervalSeconds` | 10 | How often to query resolvers during propagation check |
 | `Fennath__Certificates__ChallengePollingIntervalSeconds` | 120 | ACME challenge poll interval |
 | `Fennath__Dns__PublicIpCheckIntervalSeconds` | 300 | Public IP poll interval |
 | `Fennath__Docker__SocketPath` | /var/run/docker.sock | Docker API socket path |

@@ -84,11 +84,31 @@ public sealed class CertificateConfig
     [Range(1, 365)]
     public int RenewalThresholdDays { get; set; } = 30;
 
+    /// <summary>
+    /// Maximum time (seconds) to wait for the ACME challenge TXT record to become
+    /// visible at public DNS resolvers before giving up.
+    /// </summary>
     [Range(1, int.MaxValue)]
-    public int DnsPropagationWaitSeconds { get; set; } = 30;
+    public int DnsPropagationTimeoutSeconds { get; set; } = 300;
+
+    /// <summary>
+    /// How often (seconds) to query public resolvers while waiting for propagation.
+    /// </summary>
+    [Range(1, int.MaxValue)]
+    public int DnsPropagationPollingIntervalSeconds { get; set; } = 10;
 
     [Range(1, int.MaxValue)]
     public int ChallengePollingIntervalSeconds { get; set; } = 120;
+
+    /// <summary>
+    /// Public DNS resolvers used to verify TXT record propagation before
+    /// triggering ACME validation. Default: Google and Cloudflare public DNS.
+    /// </summary>
+    public List<string> DnsResolvers { get; set; } =
+    [
+        "8.8.8.8",
+        "1.1.1.1"
+    ];
 }
 
 public sealed class DockerConfig

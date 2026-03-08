@@ -16,6 +16,7 @@ namespace Fennath.Certificates;
 /// </summary>
 public sealed partial class AcmeService(
     IDnsProvider DnsProvider,
+    DnsPropagationChecker PropagationChecker,
     CertificateStore CertStore,
     IOptions<FennathConfig> Options,
     FennathMetrics Metrics,
@@ -67,8 +68,8 @@ public sealed partial class AcmeService(
                 await DnsProvider.CreateTxtRecordAsync(challengeSubdomain, dnsTxt, ttl: 60, ct: ct);
                 createdChallengeSubdomains.Add(challengeSubdomain);
 
-                LogWaitingForDnsPropagation(Logger, domain);
-                await Task.Delay(TimeSpan.FromSeconds(config.Certificates.DnsPropagationWaitSeconds), ct);
+                var challengeFqdn = $"_acme-challenge.{domain}";
+                await PropagationChecker.WaitForTxtRecordAsync(challengeFqdn, dnsTxt, ct);
 
                 await challenge.Validate();
                 await WaitForChallengeAsync(challenge, domain, ct);
@@ -200,12 +201,6 @@ public sealed partial class AcmeService(
     [LoggerMessage(EventId = 1107, Level = LogLevel.Warning, Message = "Using Let's Encrypt STAGING — certificate will NOT be browser-trusted")]
     private static partial void LogStagingWarning(ILogger logger);
 
-    [LoggerMessage(EventId = 1108, Level = LogLevel.Information, Message = "Waiting for DNS propagation for {domain}")]
-    private static partial void LogWaitingForDnsPropagation(ILogger logger, string domain);
-
     [LoggerMessage(EventId = 1109, Level = LogLevel.Information, Message = "Challenge status for {domain}: {status}")]
     private static partial void LogChallengePolling(ILogger logger, string domain, ChallengeStatus? status);
-
-    [LoggerMessage(EventId = 1120, Level = LogLevel.Warning, Message = "ACME challenge invalid for {domain} (likely DNS caching), will retry: {detail}")]
-    private static partial void LogChallengeInvalid(ILogger logger, string domain, string? detail);
 }

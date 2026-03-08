@@ -109,6 +109,7 @@ docker compose -f docker/docker-compose.yaml up -d
 ### Dependencies
 - **YARP** (`Yarp.ReverseProxy`) — reverse proxy engine
 - **Certes** — ACME v2 client for Let's Encrypt (targets .NET Standard 2.0; see ADR-002)
+- **DnsClient** (`DnsClient.NET`) — DNS queries for ACME challenge propagation verification
 - **OpenTelemetry .NET SDK** — traces, metrics, logs export (see ADR-006)
 - **TUnit** — test framework
 

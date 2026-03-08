@@ -41,4 +41,6 @@ The DNS-01 flow:
 - If the wildcard cert's private key leaks, all subdomains are compromised.
   Mitigation: the key lives only on the Fennath host, protected by filesystem permissions.
 - DNS-01 challenge is more complex to implement than HTTP-01.
-- DNS propagation delays can slow certificate issuance (typically 30-120 seconds for Loopia).
+- DNS propagation delays can slow certificate issuance. Mitigated by querying public
+  resolvers (8.8.8.8, 1.1.1.1) to verify the TXT record is visible before triggering
+  ACME validation, rather than relying on a fixed wait time.

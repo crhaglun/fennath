@@ -52,6 +52,7 @@ public static class YarpConfigurator
 
         // Certificates
         services.AddSingleton<CertificateStore>();
+        services.AddSingleton<DnsPropagationChecker>();
         services.AddSingleton<AcmeService>();
         services.AddHostedService<CertificateRenewalService>();
 
