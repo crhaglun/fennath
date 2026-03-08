@@ -49,7 +49,6 @@ public static class YarpConfigurator
         services.AddSingleton<DnsCommandChannel>();
         services.AddHostedService<IpMonitorService>();
         services.AddHostedService<DnsReconciliationService>();
-        services.AddHostedService<DnsReconciliationTimer>();
 
         // Certificates
         services.AddSingleton<CertificateStore>();

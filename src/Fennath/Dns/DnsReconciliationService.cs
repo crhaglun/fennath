@@ -1,4 +1,3 @@
-using Fennath.Discovery;
 using Fennath.Telemetry;
 
 namespace Fennath.Dns;
@@ -6,10 +5,10 @@ namespace Fennath.Dns;
 /// <summary>
 /// Pure executor — reads <see cref="DnsCommand"/> messages from the channel and
 /// performs the corresponding DNS operation. Contains no detection logic.
+/// Never deletes records — cleanup is a manual operation.
 /// </summary>
 public sealed partial class DnsReconciliationService(
     DnsCommandChannel Channel,
-    IEnumerable<IRouteDiscovery> RouteSources,
     IDnsProvider DnsProvider,
     FennathMetrics Metrics,
     ILogger<DnsReconciliationService> Logger) : BackgroundService
@@ -30,9 +29,6 @@ public sealed partial class DnsReconciliationService(
                         break;
                     case DnsCommand.SubdomainAdded(var subdomain):
                         await HandleSubdomainAddedAsync(subdomain, stoppingToken);
-                        break;
-                    case DnsCommand.CleanStaleRecords:
-                        await HandleCleanStaleRecordsAsync(stoppingToken);
                         break;
                 }
             }
@@ -74,46 +70,11 @@ public sealed partial class DnsReconciliationService(
         Metrics.DnsRecordsCreated.Add(1);
     }
 
-    private async Task HandleCleanStaleRecordsAsync(CancellationToken ct)
-    {
-        var activeSubdomains = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "@" };
-        foreach (var source in RouteSources)
-        {
-            foreach (var route in source.GetRoutes())
-            {
-                activeSubdomains.Add(route.Subdomain);
-            }
-        }
-
-        var stale = _managedSubdomains
-            .Except(activeSubdomains, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        foreach (var sub in stale)
-        {
-            LogRemovingStaleRecord(Logger, sub);
-            await DnsProvider.RemoveARecordAsync(sub, ct: ct);
-            _managedSubdomains.Remove(sub);
-            Metrics.DnsRecordsRemoved.Add(1);
-        }
-
-        if (stale.Count > 0)
-        {
-            LogStaleCleanupComplete(Logger, stale.Count, _managedSubdomains.Count);
-        }
-    }
-
     [LoggerMessage(EventId = 1030, Level = LogLevel.Information, Message = "Creating A record for {subdomain} → {ip}")]
     private static partial void LogCreatingRecord(ILogger logger, string subdomain, string ip);
 
     [LoggerMessage(EventId = 1031, Level = LogLevel.Information, Message = "IP changed to {ip}, updating {count} managed records")]
     private static partial void LogIpChangedUpdatingAll(ILogger logger, string ip, int count);
-
-    [LoggerMessage(EventId = 1032, Level = LogLevel.Information, Message = "Removing stale A record for {subdomain}")]
-    private static partial void LogRemovingStaleRecord(ILogger logger, string subdomain);
-
-    [LoggerMessage(EventId = 1034, Level = LogLevel.Information, Message = "Stale cleanup complete: {removedCount} removed, {remainingCount} remaining")]
-    private static partial void LogStaleCleanupComplete(ILogger logger, int removedCount, int remainingCount);
 
     [LoggerMessage(EventId = 1035, Level = LogLevel.Error, Message = "DNS command {commandType} failed")]
     private static partial void LogCommandFailed(ILogger logger, string commandType, Exception ex);

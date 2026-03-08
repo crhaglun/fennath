@@ -13,9 +13,6 @@ public abstract record DnsCommand
 
     /// <summary>A new subdomain appeared — create an A record for it.</summary>
     public sealed record SubdomainAdded(string Subdomain) : DnsCommand;
-
-    /// <summary>Periodic cleanup — remove A records for subdomains with no active container.</summary>
-    public sealed record CleanStaleRecords : DnsCommand;
 }
 
 /// <summary>
