@@ -31,7 +31,7 @@ public sealed partial class CertificateRenewalService(
         using var activity = FennathMetrics.ActivitySource.StartActivity("fennath.cert-renewal-check");
         try
         {
-            var wildcardHost = $"*.{OptionsMonitor.CurrentValue.Domain}";
+            var wildcardHost = $"*.{OptionsMonitor.CurrentValue.EffectiveDomain}";
             var expiry = CertStore.GetExpiry();
 
             if (expiry is not null)

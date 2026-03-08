@@ -60,7 +60,7 @@ public sealed partial class AcmeService(
 
                 var authResource = await auth.Resource();
                 var domain = authResource.Identifier.Value;
-                var challengeSubdomain = ChallengeSubdomain(domain, config.Domain);
+                var challengeSubdomain = ChallengeSubdomain(domain, config.EffectiveDomain);
 
                 LogSettingDnsChallenge(Logger, challengeSubdomain, dnsTxt);
 
@@ -107,8 +107,8 @@ public sealed partial class AcmeService(
     /// </summary>
     public async Task<X509Certificate2> ProvisionWildcardCertificateAsync(CancellationToken ct = default)
     {
-        var domain = Options.Value.Domain;
-        return await ProvisionCertificateAsync([$"*.{domain}", domain], ct);
+        var effectiveDomain = Options.Value.EffectiveDomain;
+        return await ProvisionCertificateAsync([$"*.{effectiveDomain}", effectiveDomain], ct);
     }
 
     private async Task WaitForChallengeAsync(IChallengeContext challenge, string domain, CancellationToken ct)

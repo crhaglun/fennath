@@ -66,10 +66,13 @@ standard .NET configuration convention:
 
 ```bash
 # Required
-Fennath__Domain=example.com
+Fennath__Domain=example.com                          # Your registered domain
 Fennath__Dns__Loopia__Username=user@loopiaapi
 Fennath__Dns__Loopia__Password=your-api-password
 Fennath__Certificates__Email=admin@example.com
+
+# Optional — scope all services under a subdomain prefix
+# Fennath__Subdomain=lab    # → services at *.lab.example.com
 ```
 
 See `docker/.env.example` for the full list of settings including intervals,

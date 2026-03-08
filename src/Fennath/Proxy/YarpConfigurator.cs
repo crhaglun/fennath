@@ -37,7 +37,7 @@ public static class YarpConfigurator
             return new RouteAggregator(
                 sources,
                 sp.GetRequiredService<InMemoryConfigProvider>(),
-                config.Domain,
+                config.EffectiveDomain,
                 sp.GetRequiredService<ILogger<RouteAggregator>>());
         });
 

@@ -10,8 +10,26 @@ public sealed class FennathConfig
 {
     public const string SectionName = "Fennath";
 
+    /// <summary>
+    /// The registered domain at your registrar (e.g., "my-domain-name.se").
+    /// </summary>
     [Required]
     public required string Domain { get; set; }
+
+    /// <summary>
+    /// Optional subdomain prefix that scopes all Fennath services (e.g., "lab").
+    /// When set, services are exposed under {service}.{Subdomain}.{Domain}.
+    /// When empty, services are exposed directly under {service}.{Domain}.
+    /// </summary>
+    public string Subdomain { get; set; } = "";
+
+    /// <summary>
+    /// The full domain used for routing and certificates.
+    /// Combines Subdomain and Domain (e.g., "lab.my-domain-name.se" or just "my-domain-name.se").
+    /// </summary>
+    public string EffectiveDomain =>
+        string.IsNullOrEmpty(Subdomain) ? Domain : $"{Subdomain}.{Domain}";
+
     [ValidateObjectMembers]
     public DnsConfig Dns { get; set; } = new();
 

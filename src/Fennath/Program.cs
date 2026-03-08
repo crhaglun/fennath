@@ -55,13 +55,13 @@ app.MapReverseProxy(proxyPipeline =>
     proxyPipeline.UseMiddleware<Fennath.Telemetry.ProxyMetricsMiddleware>();
 });
 
-Log.Starting(app.Logger, config.Domain);
+Log.Starting(app.Logger, config.EffectiveDomain);
 
 // Ensure a valid certificate exists before accepting traffic.
 // DNS-01 challenges don't need the web server, so we block here on first launch.
 if (app.Services.GetRequiredService<CertificateStore>().GetExpiry() is null)
 {
-    Log.ProvisioningCertificate(app.Logger, config.Domain);
+    Log.ProvisioningCertificate(app.Logger, config.EffectiveDomain);
     try
     {
         await app.Services.GetRequiredService<AcmeService>().ProvisionWildcardCertificateAsync();

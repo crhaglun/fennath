@@ -55,7 +55,7 @@ public static class FennathTestHost
                     services.AddSingleton(sp => new RouteAggregator(
                         sp.GetServices<IRouteDiscovery>(),
                         sp.GetRequiredService<InMemoryConfigProvider>(),
-                        sp.GetRequiredService<IOptions<FennathConfig>>().Value.Domain,
+                        sp.GetRequiredService<IOptions<FennathConfig>>().Value.EffectiveDomain,
                         sp.GetRequiredService<ILogger<RouteAggregator>>()));
 
                     // DNS — test double + real reconciliation service

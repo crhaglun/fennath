@@ -18,10 +18,36 @@ public sealed partial class LoopiaDnsProvider(
     private readonly string Username = options.Value.Dns.Loopia.Username;
     private readonly string Password = options.Value.Dns.Loopia.Password;
     private readonly string Domain = options.Value.Domain;
+    private readonly string Prefix = options.Value.Subdomain;
+
+    /// <summary>
+    /// Translates a logical subdomain (used by the rest of Fennath) into the
+    /// subdomain string that the Loopia API expects, accounting for the optional
+    /// domain prefix. Examples with prefix "lab":
+    ///   "@"               → "lab"
+    ///   "grafana"         → "grafana.lab"
+    ///   "_acme-challenge" → "_acme-challenge.lab"
+    /// With no prefix, values pass through unchanged.
+    /// </summary>
+    internal static string ToRegistrarSubdomain(string logicalSubdomain, string prefix)
+    {
+        if (string.IsNullOrEmpty(prefix))
+        {
+            return logicalSubdomain;
+        }
+
+        if (logicalSubdomain == "@")
+        {
+            return prefix;
+        }
+
+        return $"{logicalSubdomain}.{prefix}";
+    }
 
     public async Task UpsertARecordAsync(string subdomain, string ipAddress, int ttl = 300, CancellationToken ct = default)
     {
-        var existing = await GetZoneRecordsAsync(subdomain, ct);
+        var registrarSub = ToRegistrarSubdomain(subdomain, Prefix);
+        var existing = await GetZoneRecordsAsync(registrarSub, ct);
         var aRecords = existing.Where(r => r.Type == "A").ToList();
 
         if (aRecords.Count > 0)
@@ -36,26 +62,27 @@ public sealed partial class LoopiaDnsProvider(
             // Remove stale A records, then add the new one
             foreach (var stale in aRecords)
             {
-                await RemoveZoneRecordAsync(subdomain, stale.RecordId, ct);
+                await RemoveZoneRecordAsync(registrarSub, stale.RecordId, ct);
             }
         }
         else
         {
             // Ensure subdomain exists
-            await EnsureSubdomainAsync(subdomain, ct);
+            await EnsureSubdomainAsync(registrarSub, ct);
         }
 
-        await AddZoneRecordAsync(subdomain, "A", ipAddress, ttl, 0, ct);
+        await AddZoneRecordAsync(registrarSub, "A", ipAddress, ttl, 0, ct);
         LogARecordUpdated(Logger, subdomain, ipAddress);
     }
 
     public async Task RemoveARecordAsync(string subdomain, CancellationToken ct = default)
     {
-        var records = await GetZoneRecordsAsync(subdomain, ct);
+        var registrarSub = ToRegistrarSubdomain(subdomain, Prefix);
+        var records = await GetZoneRecordsAsync(registrarSub, ct);
 
         foreach (var record in records.Where(r => r.Type == "A"))
         {
-            await RemoveZoneRecordAsync(subdomain, record.RecordId, ct);
+            await RemoveZoneRecordAsync(registrarSub, record.RecordId, ct);
         }
 
         LogARecordRemoved(Logger, subdomain);
@@ -63,18 +90,20 @@ public sealed partial class LoopiaDnsProvider(
 
     public async Task CreateTxtRecordAsync(string subdomain, string value, int ttl = 60, CancellationToken ct = default)
     {
-        await EnsureSubdomainAsync(subdomain, ct);
-        await AddZoneRecordAsync(subdomain, "TXT", value, ttl, 0, ct);
+        var registrarSub = ToRegistrarSubdomain(subdomain, Prefix);
+        await EnsureSubdomainAsync(registrarSub, ct);
+        await AddZoneRecordAsync(registrarSub, "TXT", value, ttl, 0, ct);
         LogTxtRecordCreated(Logger, subdomain);
     }
 
     public async Task RemoveTxtRecordAsync(string subdomain, CancellationToken ct = default)
     {
-        var records = await GetZoneRecordsAsync(subdomain, ct);
+        var registrarSub = ToRegistrarSubdomain(subdomain, Prefix);
+        var records = await GetZoneRecordsAsync(registrarSub, ct);
 
         foreach (var record in records.Where(r => r.Type == "TXT"))
         {
-            await RemoveZoneRecordAsync(subdomain, record.RecordId, ct);
+            await RemoveZoneRecordAsync(registrarSub, record.RecordId, ct);
         }
 
         LogTxtRecordRemoved(Logger, subdomain);
@@ -82,7 +111,8 @@ public sealed partial class LoopiaDnsProvider(
 
     public async Task<IReadOnlyList<string>> GetARecordsAsync(string subdomain, CancellationToken ct = default)
     {
-        var records = await GetZoneRecordsAsync(subdomain, ct);
+        var registrarSub = ToRegistrarSubdomain(subdomain, Prefix);
+        var records = await GetZoneRecordsAsync(registrarSub, ct);
         return records.Where(r => r.Type == "A").Select(r => r.Rdata).ToList();
     }
 
