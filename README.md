@@ -2,22 +2,24 @@
   <img src="assets/fennath-tengwar.svg" alt="'Fennath' in Tengwar" height="80">
 </p>
 
-Fennath sits on the edge of your home network, accepting HTTPS traffic from the internet
-and forwarding it as plain HTTP to your backend services. It handles TLS certificates,
-DNS records, and route discovery so your toy projects can stay simple.
+**Add a Docker label to your container. Fennath does the rest** — provisions a
+TLS certificate, creates DNS records, and starts routing HTTPS traffic to your
+service. No manual certificate management, no DNS console, no proxy configuration.
 
-> "Fennath" means "doorways" in Sindarin, the constructed language for Tolkiens elves. 
+Fennath sits on the edge of your home network as a TLS-terminating reverse proxy.
+It handles Let's Encrypt certificates, Loopia DNS records, and route discovery so
+your homelab services can stay simple.
+
+> "Fennath" means "doorways" in Sindarin, the constructed language for Tolkien's elves.
 
 ## Features
 
-- **Reverse proxy with TLS termination** — backends run plain HTTP, Fennath handles HTTPS
-- **Automatic Let's Encrypt certificates** — wildcard certs via DNS-01 challenge, zero manual renewal
-- **DNS management via Loopia API** — automatic A record updates when your public IP changes
-- **Route discovery** — automatic Docker label auto-discovery
+- **Zero-touch HTTPS** — wildcard Let's Encrypt certs via DNS-01, automatic renewal
+- **Automatic DNS** — A records created and updated when your public IP changes (Loopia API)
+- **Docker label discovery** — add `fennath.subdomain=myapp` and you're live
+- **TLS termination** — backends run plain HTTP, Fennath handles HTTPS
 - **Full observability** — OpenTelemetry traces, metrics, and logs via OTLP
-- **HTTP → HTTPS redirect** — automatic redirect for all HTTP traffic
-
-Built with AI support, reviewed and critizised by human.
+- **HTTP → HTTPS redirect** — automatic for all traffic
 
 ## Quick Start
 
@@ -122,8 +124,7 @@ Fennath is built with .NET 10 and [YARP](https://github.com/microsoft/reverse-pr
 (Yet Another Reverse Proxy). Certificates are managed via [Certes](https://github.com/fszlin/certes)
 (ACME v2 client) and DNS records via Loopia's XML-RPC API.
 
-See [`docs/adr/`](docs/adr/) for Architecture Decision Records explaining key design choices,
-and [`docs/implementation-plan.md`](docs/implementation-plan.md) for the phased build plan.
+See [`docs/adr/`](docs/adr/) for Architecture Decision Records explaining key design choices.
 
 ## License
 
