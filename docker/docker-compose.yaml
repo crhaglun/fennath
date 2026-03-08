@@ -12,8 +12,8 @@ services:
     group_add:
       - ${DOCKER_GID:-999}
     ports:
-      - "80:8080"
-      - "443:8443"
+      - "80:${Fennath__Server__HttpPort:-8080}"
+      - "443:${Fennath__Server__HttpsPort:-8443}"
     volumes:
       - certs:/data/certs
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -22,7 +22,7 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${Fennath__Server__HttpPort:-8080}/healthz || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
