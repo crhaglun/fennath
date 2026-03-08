@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Fennath.Telemetry;
 
 namespace Fennath.Dns;

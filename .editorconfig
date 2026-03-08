@@ -25,3 +25,5 @@ indent_size = 4
 csharp_style_prefer_primary_constructors = true:warning
 # Require braces for all control statements
 csharp_prefer_braces = true:warning
+# Remove unnecessary usings
+dotnet_diagnostic.IDE0005.severity = warning

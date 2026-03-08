@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Yarp.ReverseProxy.Model;
 
 namespace Fennath.Telemetry;
 

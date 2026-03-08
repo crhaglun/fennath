@@ -1,7 +1,6 @@
 using System.Net;
 using Fennath.Tests.Helpers;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Hosting;
 
 namespace Fennath.Tests.Integration;
 

@@ -3,7 +3,6 @@ using System.Net;
 using Fennath.Telemetry;
 using Fennath.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 namespace Fennath.Tests.Integration;
 
