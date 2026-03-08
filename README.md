@@ -124,4 +124,4 @@ and [`docs/implementation-plan.md`](docs/implementation-plan.md) for the phased 
 
 ## License
 
-TBD
+[MIT](LICENSE)
