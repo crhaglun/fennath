@@ -120,6 +120,7 @@ public sealed partial class LoopiaDnsProvider(
 
     private async Task EnsureSubdomainAsync(string subdomain, CancellationToken ct)
     {
+        LogXmlRpcParams(Logger, "addSubdomain", Domain, subdomain);
         var response = await CallAsync("addSubdomain", [
             XmlRpcString(Username),
             XmlRpcString(Password),
@@ -131,7 +132,8 @@ public sealed partial class LoopiaDnsProvider(
         // "OK" or "DOMAIN_OCCUPIED" are both fine
         if (status is not ("OK" or "DOMAIN_OCCUPIED"))
         {
-            throw new InvalidOperationException($"addSubdomain failed for '{subdomain}': {status}");
+            LogXmlRpcResponseBody(Logger, "addSubdomain", response.ToString());
+            throw new InvalidOperationException($"addSubdomain failed for '{subdomain}' (domain='{Domain}'): {status}");
         }
     }
 
@@ -144,6 +146,7 @@ public sealed partial class LoopiaDnsProvider(
             ("priority", XmlRpcInt(priority)),
             ("rdata", XmlRpcString(rdata)));
 
+        LogXmlRpcParams(Logger, "addZoneRecord", Domain, subdomain);
         var response = await CallAsync("addZoneRecord", [
             XmlRpcString(Username),
             XmlRpcString(Password),
@@ -155,13 +158,15 @@ public sealed partial class LoopiaDnsProvider(
         var status = ParseStringResponse(response);
         if (status != "OK")
         {
+            LogXmlRpcResponseBody(Logger, "addZoneRecord", response.ToString());
             throw new InvalidOperationException(
-                $"addZoneRecord failed for '{subdomain}' ({type} {rdata}): {status}");
+                $"addZoneRecord failed for '{subdomain}' (domain='{Domain}', {type} {rdata}): {status}");
         }
     }
 
     private async Task RemoveZoneRecordAsync(string subdomain, int recordId, CancellationToken ct)
     {
+        LogXmlRpcParams(Logger, "removeZoneRecord", Domain, subdomain);
         var response = await CallAsync("removeZoneRecord", [
             XmlRpcString(Username),
             XmlRpcString(Password),
@@ -173,13 +178,15 @@ public sealed partial class LoopiaDnsProvider(
         var status = ParseStringResponse(response);
         if (status != "OK")
         {
+            LogXmlRpcResponseBody(Logger, "removeZoneRecord", response.ToString());
             throw new InvalidOperationException(
-                $"removeZoneRecord failed for '{subdomain}' record {recordId}: {status}");
+                $"removeZoneRecord failed for '{subdomain}' (domain='{Domain}') record {recordId}: {status}");
         }
     }
 
     internal async Task<List<ZoneRecord>> GetZoneRecordsAsync(string subdomain, CancellationToken ct)
     {
+        LogXmlRpcParams(Logger, "getZoneRecords", Domain, subdomain);
         var response = await CallAsync("getZoneRecords", [
             XmlRpcString(Username),
             XmlRpcString(Password),
@@ -299,6 +306,12 @@ public sealed partial class LoopiaDnsProvider(
 
     [LoggerMessage(EventId = 1015, Level = LogLevel.Debug, Message = "XML-RPC call: {method}")]
     private static partial void LogXmlRpcCall(ILogger logger, string method);
+
+    [LoggerMessage(EventId = 1016, Level = LogLevel.Information, Message = "XML-RPC {method}: domain='{domain}', subdomain='{subdomain}'")]
+    private static partial void LogXmlRpcParams(ILogger logger, string method, string domain, string subdomain);
+
+    [LoggerMessage(EventId = 1017, Level = LogLevel.Warning, Message = "XML-RPC {method} failed — response body:\n{responseBody}")]
+    private static partial void LogXmlRpcResponseBody(ILogger logger, string method, string responseBody);
 }
 
 internal sealed class ZoneRecord
