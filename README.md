@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="assets/fennath-tengwar.svg" alt="Fennath in Tengwar" height="80">
+  <img src="assets/fennath-tengwar.svg" alt="'Fennath' in Tengwar" height="80">
 </p>
-
-> *"Doorways"* in Sindarin — a TLS-terminating reverse proxy for your homelab.
 
 Fennath sits on the edge of your home network, accepting HTTPS traffic from the internet
 and forwarding it as plain HTTP to your backend services. It handles TLS certificates,
 DNS records, and route discovery so your toy projects can stay simple.
+
+> "Fennath" means "doorways" in Sindarin, the constructed language for Tolkiens elves. 
 
 ## Features
 
@@ -16,7 +16,8 @@ DNS records, and route discovery so your toy projects can stay simple.
 - **Route discovery** — automatic Docker label auto-discovery
 - **Full observability** — OpenTelemetry traces, metrics, and logs via OTLP
 - **HTTP → HTTPS redirect** — automatic redirect with configurable toggle
-- **Graceful shutdown** — in-flight requests drain before termination
+
+Built with AI support, reviewed and critizised by human.
 
 ## Quick Start
 
@@ -31,18 +32,15 @@ DNS records, and route discovery so your toy projects can stay simple.
 ```bash
 git clone https://github.com/crhaglun/fennath.git
 cd fennath
-cp appsettings.example.json appsettings.local.json
+cp docker/.env.example docker/.env
 ```
 
-Edit `appsettings.local.json` with your domain, Loopia credentials, and
-(optionally) OpenTelemetry OTLP endpoint. Sensitive values should use environment
-variables instead of the config file.
+Edit `docker/.env` with your domain, Loopia credentials, and certificate email.
+See [`docker/.env.example`](docker/.env.example) for all available settings.
 
 ### 2. Deploy with Docker Compose
 
 ```bash
-cp docker/.env.example docker/.env
-# Edit docker/.env with your domain, credentials, and options
 docker compose -f docker/docker-compose.yaml up -d
 ```
 
@@ -59,33 +57,23 @@ curl -I https://grafana.yourdomain.com
 
 ## Configuration
 
-Configuration uses the standard .NET configuration system. Copy
-[`appsettings.example.json`](appsettings.example.json) to `appsettings.local.json`
-(gitignored) and edit for your environment.
+All configuration is via environment variables in `docker/.env`. Copy
+[`docker/.env.example`](docker/.env.example) to `docker/.env` (gitignored) and
+edit for your environment.
 
-```json
-{
-  "Fennath": {
-    "Domain": "example.com"
-  }
-}
-```
-
-See `appsettings.example.json` for the full configuration schema including DNS, certificates,
-Docker discovery, telemetry, and server settings.
-
-### Environment Variables
-
-Sensitive values (API passwords, OTel tokens) use environment variables:
+Fennath uses the `Fennath__` prefix with `__` as section separator, following the
+standard .NET configuration convention:
 
 ```bash
-export Fennath__Dns__Loopia__Password=your-api-password
-
-# OpenTelemetry uses standard OTEL_* variables
-export OTEL_EXPORTER_OTLP_ENDPOINT=https://your-otlp-endpoint/otlp
-export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic ..."
-export OTEL_SERVICE_NAME=fennath
+# Required
+Fennath__Domain=example.com
+Fennath__Dns__Loopia__Username=user@loopiaapi
+Fennath__Dns__Loopia__Password=your-api-password
+Fennath__Certificates__Email=admin@example.com
 ```
+
+See `docker/.env.example` for the full list of settings including intervals,
+logging levels, and OpenTelemetry configuration.
 
 ### Docker Label Discovery
 
@@ -95,7 +83,6 @@ Fennath discovers routes from running Docker containers via labels:
 docker run -d \
   --label fennath.subdomain=myapp \
   --label fennath.port=8080 \
-  --label fennath.healthcheck.path=/health \
   my-app:latest
 ```
 
@@ -104,8 +91,9 @@ The `fennath.port` label defaults to 80 if omitted.
 
 ### Staging Certificates
 
-For testing, set `Certificates.Staging` to `true` to use Let's Encrypt's staging
-environment (avoids rate limits, but certificates are not browser-trusted).
+For testing, set `Fennath__Certificates__Staging=true` in your `.env` to use
+Let's Encrypt's staging environment (avoids rate limits, but certificates are
+not browser-trusted).
 
 ## Development
 
@@ -121,6 +109,9 @@ dotnet test
 ```
 
 Requires [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+For local development without Docker, copy `src/Fennath/appsettings.example.json`
+to `appsettings.local.json` (gitignored) and edit for your environment.
 
 ## Architecture
 

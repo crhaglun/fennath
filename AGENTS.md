@@ -17,7 +17,8 @@ See [README.md](README.md) for a human-oriented overview and
 | `AGENTS.md` | This file — agent guidance and expectations |
 | `docs/implementation-plan.md` | Phased implementation plan with deliverables |
 | `docs/adr/` | Architecture Decision Records — **read these before making design changes** |
-| `appsettings.example.json` | Reference configuration — copy to appsettings.local.json |
+| `docker/.env.example` | Reference configuration for Docker deployment |
+| `src/Fennath/appsettings.example.json` | Reference configuration for local development |
 
 ## Repository Layout
 

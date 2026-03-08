@@ -40,7 +40,6 @@ services:
     container_name: app-one
     labels:
       - "fennath.subdomain=one"
-      - "fennath.healthcheck.path=/health"
 
   app-two:
     image: traefik/whoami
