@@ -1,15 +1,13 @@
 namespace Fennath.Discovery;
 
 /// <summary>
-/// A discovered route from any source (static config, Docker labels, etc.).
+/// A discovered route from any source (Docker labels, etc.).
 /// Use <see cref="ApexMarker"/> as the subdomain to route the bare/apex domain.
 /// </summary>
 public sealed record DiscoveredRoute(
     string Subdomain,
     string BackendUrl,
-    string Source,
-    string? HealthCheckPath = null,
-    int? HealthCheckIntervalSeconds = null)
+    string Source)
 {
     /// <summary>
     /// Conventional marker for the apex/root domain (e.g., "labs.example.com" with no subdomain prefix).

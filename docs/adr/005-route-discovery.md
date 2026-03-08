@@ -29,7 +29,6 @@ container stops.
 ```
 fennath.subdomain=myapp
 fennath.port=8080
-fennath.healthcheck.path=/health
 ```
 
 ## Consequences

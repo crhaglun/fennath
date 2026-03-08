@@ -57,21 +57,6 @@ public class RouteConflictResolutionTests
     }
 
     [Test]
-    public async Task Health_check_metadata_is_preserved_through_merge()
-    {
-        var routes = new List<DiscoveredRoute>
-        {
-            new("grafana", "http://localhost:3000", "docker", "/api/health", 60),
-        };
-
-        var merged = RouteAggregator.Merge(routes);
-
-        await Assert.That(merged).Count().IsEqualTo(1);
-        await Assert.That(merged[0].HealthCheckPath).IsEqualTo("/api/health");
-        await Assert.That(merged[0].HealthCheckIntervalSeconds).IsEqualTo(60);
-    }
-
-    [Test]
     public async Task Apex_route_is_preserved_through_merge()
     {
         var routes = new List<DiscoveredRoute>

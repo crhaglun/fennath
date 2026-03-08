@@ -67,54 +67,6 @@ public class DockerLabelParsingTests
     }
 
     [Test]
-    public async Task Health_check_labels_are_parsed()
-    {
-        var labels = new Dictionary<string, string>
-        {
-            ["fennath.subdomain"] = "grafana",
-            ["fennath.healthcheck.path"] = "/api/health",
-            ["fennath.healthcheck.interval"] = "60"
-        };
-
-        var routes = DockerRouteDiscovery.ParseContainerRoutes("abc123", "grafana-app", labels);
-
-        await Assert.That(routes).Count().IsEqualTo(1);
-        await Assert.That(routes[0].HealthCheckPath).IsEqualTo("/api/health");
-        await Assert.That(routes[0].HealthCheckIntervalSeconds).IsEqualTo(60);
-    }
-
-    [Test]
-    public async Task Health_check_labels_shared_across_comma_separated_subdomains()
-    {
-        var labels = new Dictionary<string, string>
-        {
-            ["fennath.subdomain"] = "@,www",
-            ["fennath.healthcheck.path"] = "/health"
-        };
-
-        var routes = DockerRouteDiscovery.ParseContainerRoutes("abc123", "my-app", labels);
-
-        await Assert.That(routes).Count().IsEqualTo(2);
-        await Assert.That(routes[0].HealthCheckPath).IsEqualTo("/health");
-        await Assert.That(routes[1].HealthCheckPath).IsEqualTo("/health");
-    }
-
-    [Test]
-    public async Task Invalid_health_check_interval_is_ignored()
-    {
-        var labels = new Dictionary<string, string>
-        {
-            ["fennath.subdomain"] = "grafana",
-            ["fennath.healthcheck.interval"] = "not-a-number"
-        };
-
-        var routes = DockerRouteDiscovery.ParseContainerRoutes("abc123", "grafana-app", labels);
-
-        await Assert.That(routes).Count().IsEqualTo(1);
-        await Assert.That(routes[0].HealthCheckIntervalSeconds).IsNull();
-    }
-
-    [Test]
     public async Task Invalid_port_label_uses_default()
     {
         var labels = new Dictionary<string, string>

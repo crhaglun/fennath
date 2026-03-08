@@ -69,18 +69,7 @@ public sealed partial class RouteAggregator : IDisposable
                 Destinations = new Dictionary<string, DestinationConfig>
                 {
                     ["default"] = new DestinationConfig { Address = route.BackendUrl }
-                },
-                HealthCheck = route.HealthCheckPath is not null
-                    ? new HealthCheckConfig
-                    {
-                        Active = new ActiveHealthCheckConfig
-                        {
-                            Enabled = true,
-                            Path = route.HealthCheckPath,
-                            Interval = TimeSpan.FromSeconds(route.HealthCheckIntervalSeconds ?? 30)
-                        }
-                    }
-                    : null
+                }
             };
 
             yarpClusters.Add(clusterBuilder);

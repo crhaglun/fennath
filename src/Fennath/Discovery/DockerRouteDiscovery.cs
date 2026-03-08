@@ -16,8 +16,6 @@ namespace Fennath.Discovery;
 ///   <item><c>fennath.subdomain</c> — required; comma-separated list of subdomains
 ///     (e.g. "www", "@,www", "grafana"). Use "@" for the apex/root domain.</item>
 ///   <item><c>fennath.port</c> — optional; backend port (default 80).</item>
-///   <item><c>fennath.healthcheck.path</c> — optional; health check path.</item>
-///   <item><c>fennath.healthcheck.interval</c> — optional; health check interval in seconds.</item>
 /// </list>
 /// </summary>
 public sealed partial class DockerRouteDiscovery(
@@ -27,8 +25,6 @@ public sealed partial class DockerRouteDiscovery(
 {
     private const string SubdomainLabel = "fennath.subdomain";
     private const string PortLabel = "fennath.port";
-    private const string HealthCheckPathLabel = "fennath.healthcheck.path";
-    private const string HealthCheckIntervalLabel = "fennath.healthcheck.interval";
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(15);
 
     private readonly DockerClient Client = new DockerClientConfiguration(
@@ -146,12 +142,6 @@ public sealed partial class DockerRouteDiscovery(
             : 80;
         var backend = $"http://{containerName}:{port}";
 
-        labels.TryGetValue(HealthCheckPathLabel, out var healthPath);
-        int? healthInterval = labels.TryGetValue(HealthCheckIntervalLabel, out var intervalStr)
-            && int.TryParse(intervalStr, out var parsed)
-            ? parsed
-            : null;
-
         var source = $"docker:{containerId}";
         var subdomains = subdomainValue
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -160,9 +150,7 @@ public sealed partial class DockerRouteDiscovery(
             .Select(sub => new DiscoveredRoute(
                 Subdomain: sub,
                 BackendUrl: backend,
-                Source: source,
-                HealthCheckPath: healthPath,
-                HealthCheckIntervalSeconds: healthInterval))
+                Source: source))
             .ToList();
     }
 
