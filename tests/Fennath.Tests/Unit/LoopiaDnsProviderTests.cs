@@ -111,8 +111,10 @@ public class LoopiaDnsProviderTests
     [Test]
     public async Task CreateTxtRecord_calls_addSubdomain_then_addZoneRecord()
     {
+        // addSubdomain → getZoneRecords (no stale records) → addZoneRecord
         var handler = new SequentialHandler([
             CreateXmlRpcStringResponse("OK"),
+            CreateXmlRpcResponse("<array><data></data></array>"),
             CreateXmlRpcStringResponse("OK"),
         ]);
 
@@ -120,8 +122,8 @@ public class LoopiaDnsProviderTests
 
         await provider.CreateTxtRecordAsync("_acme-challenge", "token123", 60);
 
-        await Assert.That(handler.CallCount).IsEqualTo(2);
-        await Assert.That(handler.RequestBodies[1]).Contains("token123");
+        await Assert.That(handler.CallCount).IsEqualTo(3);
+        await Assert.That(handler.RequestBodies[2]).Contains("token123");
     }
 
     [Test]
