@@ -22,6 +22,7 @@ public sealed class DnsConfig
     public string Provider { get; set; } = "loopia";
     public LoopiaConfig Loopia { get; set; } = new();
     public int PublicIpCheckIntervalSeconds { get; set; } = 300;
+    public int ReconciliationIntervalSeconds { get; set; } = 86400;
     public List<string> IpEchoServices { get; set; } =
     [
         "https://api.ipify.org",
@@ -41,11 +42,16 @@ public sealed class CertificateConfig
     public string Email { get; set; } = "";
     public bool Staging { get; set; }
     public string StoragePath { get; set; } = "/data/certs";
+    public int RenewalCheckIntervalSeconds { get; set; } = 86400;
+    public int RenewalThresholdDays { get; set; } = 30;
+    public int DnsPropagationWaitSeconds { get; set; } = 30;
+    public int ChallengePollingIntervalSeconds { get; set; } = 120;
 }
 
 public sealed class DockerConfig
 {
     public string SocketPath { get; set; } = "/var/run/docker.sock";
+    public int PollIntervalSeconds { get; set; } = 15;
 }
 
 public sealed class ServerConfig

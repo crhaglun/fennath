@@ -19,18 +19,17 @@ namespace Fennath.Discovery;
 /// </list>
 /// </summary>
 public sealed partial class DockerRouteDiscovery(
-    IOptions<FennathConfig> Options,
+    IOptionsMonitor<FennathConfig> OptionsMonitor,
     DnsReconciliationTrigger DnsTrigger,
     ILogger<DockerRouteDiscovery> Logger) : BackgroundService, IRouteDiscovery
 {
     private const string SubdomainLabel = "fennath.subdomain";
     private const string PortLabel = "fennath.port";
-    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(15);
 
     private readonly DockerClient Client = new DockerClientConfiguration(
-        new Uri(Options.Value.Docker.SocketPath.StartsWith('/')
-            ? $"unix://{Options.Value.Docker.SocketPath}"
-            : Options.Value.Docker.SocketPath))
+        new Uri(OptionsMonitor.CurrentValue.Docker.SocketPath.StartsWith('/')
+            ? $"unix://{OptionsMonitor.CurrentValue.Docker.SocketPath}"
+            : OptionsMonitor.CurrentValue.Docker.SocketPath))
         .CreateClient();
 
     private readonly Lock _lock = new();
@@ -65,7 +64,7 @@ public sealed partial class DockerRouteDiscovery(
                 LogPollFailed(Logger, ex);
             }
 
-            await Task.Delay(PollInterval, stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(OptionsMonitor.CurrentValue.Docker.PollIntervalSeconds), stoppingToken);
         } while (!stoppingToken.IsCancellationRequested);
     }
 

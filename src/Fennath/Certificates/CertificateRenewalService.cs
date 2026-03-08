@@ -15,15 +15,13 @@ public sealed partial class CertificateRenewalService(
     FennathMetrics Metrics,
     ILogger<CertificateRenewalService> Logger) : BackgroundService
 {
-    private static readonly TimeSpan RenewalThreshold = TimeSpan.FromDays(30);
-    private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(24);
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         do
         {
             await EnsureCertificateAsync(stoppingToken);
-            await Task.Delay(CheckInterval, stoppingToken);
+            var interval = OptionsMonitor.CurrentValue.Certificates.RenewalCheckIntervalSeconds;
+            await Task.Delay(TimeSpan.FromSeconds(interval), stoppingToken);
         } while (!stoppingToken.IsCancellationRequested);
     }
 
@@ -40,7 +38,8 @@ public sealed partial class CertificateRenewalService(
                 Metrics.CertExpiryDays.Record(remaining.TotalDays,
                     new KeyValuePair<string, object?>("hostname", wildcardHost));
 
-                if (remaining > RenewalThreshold)
+                var thresholdDays = OptionsMonitor.CurrentValue.Certificates.RenewalThresholdDays;
+                if (remaining > TimeSpan.FromDays(thresholdDays))
                 {
                     LogCertificateValid(Logger, wildcardHost, remaining.Days);
                     return;

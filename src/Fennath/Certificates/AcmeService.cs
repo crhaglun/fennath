@@ -65,7 +65,7 @@ public sealed partial class AcmeService(
                 createdChallengeSubdomains.Add(challengeSubdomain);
 
                 LogWaitingForDnsPropagation(Logger, domain);
-                await Task.Delay(TimeSpan.FromSeconds(30), ct);
+                await Task.Delay(TimeSpan.FromSeconds(config.Certificates.DnsPropagationWaitSeconds), ct);
 
                 await challenge.Validate();
                 await WaitForChallengeAsync(challenge, domain, ct);
@@ -127,7 +127,7 @@ public sealed partial class AcmeService(
                     $"ACME challenge failed for {domain}: {resource.Error?.Detail}");
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(2), ct);
+            await Task.Delay(TimeSpan.FromSeconds(Options.Value.Certificates.ChallengePollingIntervalSeconds), ct);
         }
     }
 

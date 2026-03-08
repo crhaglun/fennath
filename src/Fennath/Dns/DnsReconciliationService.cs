@@ -24,8 +24,6 @@ public sealed partial class DnsReconciliationService(
     IOptions<FennathConfig> Options,
     ILogger<DnsReconciliationService> Logger) : BackgroundService
 {
-    private static readonly TimeSpan FullReconciliationInterval = TimeSpan.FromHours(24);
-
     private readonly HashSet<string> _managedSubdomains = new(StringComparer.OrdinalIgnoreCase);
     private string? _currentIp;
 
@@ -36,8 +34,11 @@ public sealed partial class DnsReconciliationService(
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            var reconciliationInterval = TimeSpan.FromSeconds(
+                Options.Value.Dns.ReconciliationIntervalSeconds);
+
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-            timeoutCts.CancelAfter(FullReconciliationInterval);
+            timeoutCts.CancelAfter(reconciliationInterval);
 
             bool signaled;
             try
