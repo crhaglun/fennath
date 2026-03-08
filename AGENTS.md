@@ -27,7 +27,7 @@ fennath/
 │   ├── Configuration/        # Options-pattern config model and validation
 │   ├── Proxy/                # YARP integration and health checks
 │   ├── Certificates/         # ACME/Let's Encrypt cert management
-│   ├── Dns/                  # Loopia XML-RPC DNS provider
+│   ├── Dns/                  # DNS management: IP monitoring, reconciliation, Loopia provider
 │   ├── Discovery/            # Route discovery (Docker labels)
 │   └── Telemetry/            # OpenTelemetry setup and custom metrics
 ├── tests/Fennath.Tests/      # Unit and integration tests

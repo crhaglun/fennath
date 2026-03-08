@@ -5,15 +5,15 @@ using Microsoft.Extensions.Options;
 namespace Fennath.Dns;
 
 /// <summary>
-/// Background service that periodically checks the public IP and updates
-/// DNS A records (wildcard + root) via IDnsProvider when the IP changes.
+/// Background service that periodically checks the public IP and signals
+/// DnsReconciliationTrigger when the IP changes.
 /// </summary>
-public sealed partial class DnsUpdateService(
+public sealed partial class IpMonitorService(
     PublicIpResolver IpResolver,
-    IDnsProvider DnsProvider,
+    DnsReconciliationTrigger Trigger,
     IOptionsMonitor<FennathConfig> OptionsMonitor,
     FennathMetrics Metrics,
-    ILogger<DnsUpdateService> Logger) : BackgroundService
+    ILogger<IpMonitorService> Logger) : BackgroundService
 {
     private string? _lastKnownIp;
 
@@ -21,13 +21,13 @@ public sealed partial class DnsUpdateService(
     {
         do
         {
-            await UpdateDnsAsync(stoppingToken);
+            await CheckIpAsync(stoppingToken);
             var interval = OptionsMonitor.CurrentValue.Dns.PublicIpCheckIntervalSeconds;
             await Task.Delay(TimeSpan.FromSeconds(interval), stoppingToken);
         } while (!stoppingToken.IsCancellationRequested);
     }
 
-    private async Task UpdateDnsAsync(CancellationToken ct)
+    private async Task CheckIpAsync(CancellationToken ct)
     {
         try
         {
@@ -50,19 +50,11 @@ public sealed partial class DnsUpdateService(
             }
 
             _lastKnownIp = currentIp;
-
-            // Update wildcard record (*.domain)
-            await DnsProvider.UpsertARecordAsync("*", currentIp, ct: ct);
-
-            // Update root record (@)
-            await DnsProvider.UpsertARecordAsync("@", currentIp, ct: ct);
-
-            LogDnsUpdateComplete(Logger, 2);
-            Metrics.DnsUpdatesTotal.Add(1);
+            Trigger.Signal("ip-changed");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogDnsUpdateFailed(Logger, ex);
+            LogIpCheckFailed(Logger, ex);
         }
     }
 
@@ -75,9 +67,6 @@ public sealed partial class DnsUpdateService(
     [LoggerMessage(EventId = 1002, Level = LogLevel.Information, Message = "Initial public IP: {ip}")]
     private static partial void LogInitialIp(ILogger logger, string ip);
 
-    [LoggerMessage(EventId = 1003, Level = LogLevel.Information, Message = "DNS update complete, {count} records updated")]
-    private static partial void LogDnsUpdateComplete(ILogger logger, int count);
-
-    [LoggerMessage(EventId = 1004, Level = LogLevel.Error, Message = "DNS update failed, will retry on next interval")]
-    private static partial void LogDnsUpdateFailed(ILogger logger, Exception ex);
+    [LoggerMessage(EventId = 1004, Level = LogLevel.Error, Message = "IP check failed, will retry on next interval")]
+    private static partial void LogIpCheckFailed(ILogger logger, Exception ex);
 }

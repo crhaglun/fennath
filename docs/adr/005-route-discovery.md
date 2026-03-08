@@ -28,7 +28,7 @@ container stops.
 
 ```
 fennath.subdomain=myapp
-fennath.backend=http://myapp:8080
+fennath.port=8080
 fennath.healthcheck.path=/health
 ```
 

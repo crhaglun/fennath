@@ -1,4 +1,5 @@
 using Docker.DotNet;
+using Fennath.Dns;
 using Docker.DotNet.Models;
 using Fennath.Configuration;
 using Microsoft.Extensions.Options;
@@ -21,6 +22,7 @@ namespace Fennath.Discovery;
 /// </summary>
 public sealed partial class DockerRouteDiscovery(
     IOptions<FennathConfig> Options,
+    DnsReconciliationTrigger DnsTrigger,
     ILogger<DockerRouteDiscovery> Logger) : BackgroundService, IRouteDiscovery
 {
     private const string SubdomainLabel = "fennath.subdomain";
@@ -52,19 +54,10 @@ public sealed partial class DockerRouteDiscovery(
                 await RefreshFromRunningContainersAsync(stoppingToken);
                 var current = _routes;
 
-                if (HasChanges(previous, current, out var added, out var removed))
+                if (LogAndDetectChanges(previous, current))
                 {
-                    foreach (var route in added)
-                    {
-                        LogRouteAdded(Logger, route.Subdomain, route.BackendUrl, route.Source);
-                    }
-
-                    foreach (var route in removed)
-                    {
-                        LogRouteRemoved(Logger, route.Subdomain, route.Source);
-                    }
-
                     RoutesChanged?.Invoke();
+                    DnsTrigger.Signal("routes-changed");
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -113,17 +106,29 @@ public sealed partial class DockerRouteDiscovery(
         }
     }
 
-    private static bool HasChanges(
+    private bool LogAndDetectChanges(
         IReadOnlyList<DiscoveredRoute> previous,
-        IReadOnlyList<DiscoveredRoute> current,
-        out IEnumerable<DiscoveredRoute> added,
-        out IEnumerable<DiscoveredRoute> removed)
+        IReadOnlyList<DiscoveredRoute> current)
     {
         var prevSet = previous.ToHashSet();
         var currSet = current.ToHashSet();
-        added = currSet.Except(prevSet);
-        removed = prevSet.Except(currSet);
-        return !prevSet.SetEquals(currSet);
+
+        if (prevSet.SetEquals(currSet))
+        {
+            return false;
+        }
+
+        foreach (var route in currSet.Except(prevSet))
+        {
+            LogRouteAdded(Logger, route.Subdomain, route.BackendUrl, route.Source);
+        }
+
+        foreach (var route in prevSet.Except(currSet))
+        {
+            LogRouteRemoved(Logger, route.Subdomain, route.Source);
+        }
+
+        return true;
     }
 
     internal static List<DiscoveredRoute> ParseContainerRoutes(

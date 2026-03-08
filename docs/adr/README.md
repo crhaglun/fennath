@@ -22,6 +22,7 @@ Each record captures the context, decision, and consequences so that future cont
 | [010](010-cert-persistence-rate-limits.md) | Certificate persistence and rate limit mitigation | Accepted |
 | [011](011-dynamic-route-updates.md) | Dynamic route updates via YARP InMemoryConfigProvider | Accepted |
 | [012](012-testing-strategy.md) | Testing strategy — integration-heavy, behavior-focused | Accepted |
+| [013](013-per-subdomain-dns-reconciliation.md) | Per-subdomain DNS with event-driven reconciliation | Accepted |
 
 ## Format
 
