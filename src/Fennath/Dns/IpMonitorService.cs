@@ -5,16 +5,17 @@ using Microsoft.Extensions.Options;
 namespace Fennath.Dns;
 
 /// <summary>
-/// Background service that periodically checks the public IP.
-/// Exposes <see cref="CurrentIp"/> for other services to read.
+/// Background service that periodically checks the public IP and sends
+/// <see cref="DnsCommand.IpChanged"/> when it changes.
 /// </summary>
 public sealed partial class IpMonitorService(
     PublicIpResolver IpResolver,
+    DnsCommandChannel Channel,
     IOptionsMonitor<FennathConfig> OptionsMonitor,
     FennathMetrics Metrics,
     ILogger<IpMonitorService> Logger) : BackgroundService
 {
-    public string? CurrentIp { get; private set; }
+    private string? _lastKnownIp;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -32,15 +33,15 @@ public sealed partial class IpMonitorService(
         {
             var currentIp = await IpResolver.GetPublicIpAsync(ct);
 
-            if (currentIp == CurrentIp)
+            if (currentIp == _lastKnownIp)
             {
                 LogIpUnchanged(Logger, currentIp);
                 return;
             }
 
-            if (CurrentIp is not null)
+            if (_lastKnownIp is not null)
             {
-                LogIpChanged(Logger, CurrentIp, currentIp);
+                LogIpChanged(Logger, _lastKnownIp, currentIp);
                 Metrics.IpChangesTotal.Add(1);
             }
             else
@@ -48,7 +49,8 @@ public sealed partial class IpMonitorService(
                 LogInitialIp(Logger, currentIp);
             }
 
-            CurrentIp = currentIp;
+            _lastKnownIp = currentIp;
+            Channel.Send(new DnsCommand.IpChanged(currentIp));
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
