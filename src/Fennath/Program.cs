@@ -15,6 +15,12 @@ builder.Services
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<FennathConfig>, FennathConfigValidator>();
 
+builder.Services.AddOptions<Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionOptions>()
+    .Configure<IOptions<FennathConfig>>((httpsOptions, fennathConfig) =>
+    {
+        httpsOptions.HttpsPort = fennathConfig.Value.Server.ExternalHttpsPort;
+    });
+
 // Graceful shutdown — allow in-flight requests to drain before terminating
 builder.Services.Configure<HostOptions>(opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(30));
 

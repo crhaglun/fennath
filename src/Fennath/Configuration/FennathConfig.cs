@@ -14,7 +14,7 @@ public sealed class FennathConfig
     /// The registered domain at your registrar (e.g., "my-domain-name.se").
     /// </summary>
     [Required]
-    public required string Domain { get; set; }
+    public string Domain { get; set; } = "";
 
     /// <summary>
     /// Optional subdomain prefix that scopes all Fennath services (e.g., "lab").
@@ -126,6 +126,14 @@ public sealed class ServerConfig
 
     [Range(1, 65535)]
     public int HttpPort { get; set; } = 80;
+
+    /// <summary>
+    /// The external-facing HTTPS port for redirect URLs. When the container listens
+    /// on a non-standard port (e.g. 8443) behind port-forwarding, this ensures
+    /// HTTP→HTTPS redirects point to the correct external port.
+    /// </summary>
+    [Range(1, 65535)]
+    public int ExternalHttpsPort { get; set; } = 443;
 }
 
 /// <summary>
