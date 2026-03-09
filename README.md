@@ -133,9 +133,17 @@ you're exposing before pointing it at the internet.
   backend is responsible for its own authentication and authorization (see
   [ADR-008](docs/adr/008-no-proxy-auth.md)).
 - **DNS credentials have broad access.** The Loopia API credentials can manage all
-  records for your domain, not just the ones Fennath uses.
+  records for your domain, not just the ones Fennath uses. They are passed as
+  environment variables, which are visible via `docker inspect`, inherited by child
+  processes, and readable from `/proc/<pid>/environ` inside the container.
 - **Docker socket access is powerful.** Read-only access to the Docker socket still
   allows listing all containers and their environment variables.
+
+A future improvement would be to split DNS/ACME management into a separate sidecar
+container. The proxy itself doesn't need DNS credentials during normal operation —
+only during certificate provisioning. A sidecar that holds the credentials and
+writes certificates to a shared volume would keep DNS access and Docker socket
+access in separate containers, reducing the blast radius of a compromise in either.
 
 ## License
 
