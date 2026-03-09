@@ -139,10 +139,9 @@ you're exposing before pointing it at the internet.
 - **Docker socket access is powerful.** Read-only access to the Docker socket still
   allows listing all containers and their environment variables.
 
-A future improvement would be to split DNS/ACME management into a separate sidecar
-container. The proxy itself doesn't need DNS credentials during normal operation —
-only during certificate provisioning. A sidecar that holds the credentials and
-writes certificates to a shared volume would keep DNS access and Docker socket
+A future improvement would be to split DNS/ACME management into a separate sidecar container. 
+The proxy itself doesn't need DNS credentials during normal operation, only during certificate provisioning.
+A sidecar that holds the credentials and writes certificates and proxy configuration to a shared volume would keep DNS access and Docker socket
 access in separate containers, reducing the blast radius of a compromise in either.
 
 ## License
