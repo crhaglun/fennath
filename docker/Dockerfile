@@ -1,17 +1,19 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 WORKDIR /src
 
 # Copy project files first for layer caching
 COPY Directory.Build.props Directory.Packages.props fennath.slnx global.json ./
 COPY src/Fennath/Fennath.csproj src/Fennath/
-RUN dotnet restore src/Fennath/Fennath.csproj
+RUN dotnet restore src/Fennath/Fennath.csproj -r linux-musl-x64
 
-# Copy source and publish
+# Copy source and publish (self-contained + trimmed)
 COPY src/ src/
-RUN dotnet publish src/Fennath/Fennath.csproj -c Release -o /app --no-restore
+RUN dotnet publish src/Fennath/Fennath.csproj -c Release -o /app --no-restore \
+    -r linux-musl-x64 --self-contained \
+    -p:PublishTrimmed=true -p:TrimMode=partial
 
-# Runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+# Runtime image — runtime-deps only (self-contained app carries its own runtime)
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine AS runtime
 WORKDIR /app
 
 RUN mkdir -p /data/certs && chown $APP_UID:$APP_UID /data/certs
@@ -22,4 +24,4 @@ USER $APP_UID
 
 EXPOSE 8080 8443
 
-ENTRYPOINT ["dotnet", "Fennath.dll"]
+ENTRYPOINT ["./Fennath"]
