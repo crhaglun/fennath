@@ -4,12 +4,12 @@ WORKDIR /src
 # Copy project files first for layer caching
 COPY Directory.Build.props Directory.Packages.props fennath.slnx global.json ./
 COPY src/Fennath.Shared/Fennath.Shared.csproj src/Fennath.Shared/
-COPY src/Fennath/Fennath.csproj src/Fennath/
-RUN dotnet restore src/Fennath/Fennath.csproj -r linux-musl-x64
+COPY src/Fennath.Sidecar/Fennath.Sidecar.csproj src/Fennath.Sidecar/
+RUN dotnet restore src/Fennath.Sidecar/Fennath.Sidecar.csproj -r linux-musl-x64
 
 # Copy source and publish (self-contained + trimmed)
 COPY src/ src/
-RUN dotnet publish src/Fennath/Fennath.csproj -c Release -o /app --no-restore \
+RUN dotnet publish src/Fennath.Sidecar/Fennath.Sidecar.csproj -c Release -o /app --no-restore \
     -r linux-musl-x64 --self-contained \
     -p:PublishTrimmed=true -p:TrimMode=partial
 
@@ -23,6 +23,4 @@ COPY --from=build /app .
 
 USER $APP_UID
 
-EXPOSE 8080 8443
-
-ENTRYPOINT ["./Fennath"]
+ENTRYPOINT ["./Fennath.Sidecar"]

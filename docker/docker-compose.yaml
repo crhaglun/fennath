@@ -1,4 +1,7 @@
 services:
+  # Reverse proxy — TLS termination, Docker route discovery, YARP routing
+  # Has: Docker socket access (read-only)
+  # Does NOT have: DNS credentials (see ADR-014)
   fennath:
     build:
       context: ..
@@ -15,18 +18,62 @@ services:
       - "80:${Fennath__Server__HttpPort:-8080}"
       - "443:${Fennath__Server__HttpsPort:-8443}"
     volumes:
-      - certs:/data/certs
+      - shared:/data/shared
       - /var/run/docker.sock:/var/run/docker.sock:ro
     tmpfs:
       - /tmp
-    env_file:
-      - .env
+    environment:
+      - Fennath__Domain=${Fennath__Domain}
+      - Fennath__Subdomain=${Fennath__Subdomain:-}
+      - Fennath__Server__HttpsPort=${Fennath__Server__HttpsPort:-8443}
+      - Fennath__Server__HttpPort=${Fennath__Server__HttpPort:-8080}
+      - Fennath__Docker__PollIntervalSeconds=${Fennath__Docker__PollIntervalSeconds:-15}
+      - Fennath__Certificates__StoragePath=/data/shared/certs
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
+      - OTEL_SERVICE_NAME=fennath-proxy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:${Fennath__Server__HttpPort:-8080}/healthz || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # Sidecar — DNS management, ACME certificate provisioning
+  # Has: DNS credentials (Loopia API)
+  # Does NOT have: Docker socket access (see ADR-014)
+  fennath-sidecar:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sidecar
+    container_name: fennath-sidecar
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - shared:/data/shared
+    tmpfs:
+      - /tmp
+    environment:
+      - Fennath__Domain=${Fennath__Domain}
+      - Fennath__Subdomain=${Fennath__Subdomain:-}
+      - Fennath__Dns__Loopia__Username=${Fennath__Dns__Loopia__Username}
+      - Fennath__Dns__Loopia__Password=${Fennath__Dns__Loopia__Password}
+      - Fennath__Certificates__Email=${Fennath__Certificates__Email}
+      - Fennath__Certificates__Staging=${Fennath__Certificates__Staging:-false}
+      - Fennath__Certificates__StoragePath=/data/shared/certs
+      - Fennath__Certificates__RenewalCheckIntervalSeconds=${Fennath__Certificates__RenewalCheckIntervalSeconds:-86400}
+      - Fennath__Certificates__RenewalThresholdDays=${Fennath__Certificates__RenewalThresholdDays:-30}
+      - Fennath__Dns__PublicIpCheckIntervalSeconds=${Fennath__Dns__PublicIpCheckIntervalSeconds:-300}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
+      - OTEL_SERVICE_NAME=fennath-sidecar
     logging:
       driver: json-file
       options:
@@ -49,4 +96,4 @@ services:
       - "fennath.subdomain=two"
 
 volumes:
-  certs:
+  shared:

@@ -1,6 +1,6 @@
-using Fennath.Certificates;
 using Fennath.Configuration;
-using Fennath.Dns;
+using Fennath.Sidecar.Certificates;
+using Fennath.Sidecar.Dns;
 
 namespace Fennath.Tests.Unit;
 

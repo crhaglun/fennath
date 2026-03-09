@@ -1,15 +1,15 @@
 using Fennath.Certificates;
 using Fennath.Configuration;
 using Fennath.Discovery;
-using Fennath.Dns;
 using Microsoft.Extensions.Options;
 using Yarp.ReverseProxy.Configuration;
 
 namespace Fennath.Proxy;
 
 /// <summary>
-/// Configures the YARP reverse proxy pipeline and wires up route discovery,
-/// DNS management, and certificate services.
+/// Configures the YARP reverse proxy pipeline and wires up route discovery
+/// and certificate watching. DNS/ACME management runs in the sidecar container
+/// (see ADR-014).
 /// </summary>
 public static class YarpConfigurator
 {
@@ -41,20 +41,12 @@ public static class YarpConfigurator
                 sp.GetRequiredService<ILogger<RouteAggregator>>());
         });
 
-        // DNS
-        services.AddHttpClient<LoopiaDnsProvider>(client => client.Timeout = TimeSpan.FromSeconds(60));
-        services.AddSingleton<IDnsProvider>(sp => sp.GetRequiredService<LoopiaDnsProvider>());
-        services.AddHttpClient<PublicIpResolver>(client => client.Timeout = TimeSpan.FromSeconds(30));
-        services.AddSingleton<PublicIpResolver>();
-        services.AddSingleton<DnsCommandChannel>();
-        services.AddHostedService<IpMonitorService>();
-        services.AddHostedService<DnsReconciliationService>();
-
-        // Certificates
+        // Certificate store — reads certs written by the sidecar
         services.AddSingleton<CertificateStore>();
-        services.AddSingleton<DnsPropagationChecker>();
-        services.AddSingleton<AcmeService>();
-        services.AddHostedService<CertificateRenewalService>();
+        services.AddHostedService<CertificateFileWatcher>();
+
+        // Route file writer — publishes discovered subdomains for the sidecar
+        services.AddHostedService<RouteFileWriter>();
 
         return services;
     }

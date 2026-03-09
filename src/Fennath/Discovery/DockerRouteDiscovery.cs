@@ -1,7 +1,6 @@
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Fennath.Configuration;
-using Fennath.Dns;
 using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
@@ -21,7 +20,6 @@ namespace Fennath.Discovery;
 /// </summary>
 public sealed partial class DockerRouteDiscovery(
     IOptionsMonitor<FennathConfig> OptionsMonitor,
-    DnsCommandChannel DnsChannel,
     ILogger<DockerRouteDiscovery> Logger) : BackgroundService, IRouteDiscovery
 {
     private const string SubdomainLabel = "fennath.subdomain";
@@ -118,7 +116,6 @@ public sealed partial class DockerRouteDiscovery(
         foreach (var route in currSet.Except(prevSet))
         {
             LogRouteAdded(Logger, route.Subdomain, route.BackendUrl, route.Source);
-            DnsChannel.Send(new DnsCommand.SubdomainAdded(route.Subdomain));
         }
 
         foreach (var route in prevSet.Except(currSet))

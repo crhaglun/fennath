@@ -1,6 +1,6 @@
 using Fennath.Configuration;
 using Fennath.Discovery;
-using Fennath.Dns;
+using Fennath.Sidecar.Dns;
 using Fennath.Telemetry;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Logging;

@@ -1,4 +1,4 @@
-namespace Fennath.Dns;
+namespace Fennath.Sidecar.Dns;
 
 /// <summary>
 /// Abstraction for DNS provider operations.

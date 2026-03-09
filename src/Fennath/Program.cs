@@ -13,7 +13,7 @@ builder.Services
     .AddOptions<FennathConfig>()
     .BindConfiguration(FennathConfig.SectionName)
     .ValidateOnStart();
-builder.Services.AddSingleton<IValidateOptions<FennathConfig>, FennathConfigValidator>();
+builder.Services.AddSingleton<IValidateOptions<FennathConfig>, ProxyConfigValidator>();
 
 builder.Services.AddOptions<Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionOptions>()
     .Configure<IOptions<FennathConfig>>((httpsOptions, fennathConfig) =>
@@ -66,19 +66,34 @@ Log.Starting(app.Logger, config.EffectiveDomain);
 
 await app.StartAsync();
 
-// Ensure a valid certificate exists before accepting HTTPS traffic.
+// Wait for a valid certificate to appear on the shared volume.
+// The sidecar container provisions and writes certs; we watch for changes.
 // The host is already running (OTel active, /healthz available on HTTP)
-// but TLS handshakes will fail until a cert is provisioned.
+// but TLS handshakes will fail until a cert is available.
 if (app.Services.GetRequiredService<CertificateStore>().GetExpiry() is null)
 {
-    Log.ProvisioningCertificate(app.Logger, config.EffectiveDomain);
+    Log.WaitingForCertificate(app.Logger, config.EffectiveDomain);
+
+    using var cts = CancellationTokenSource.CreateLinkedTokenSource(app.Lifetime.ApplicationStopping);
+    cts.CancelAfter(TimeSpan.FromMinutes(10));
+
     try
     {
-        await app.Services.GetRequiredService<AcmeService>().ProvisionWildcardCertificateAsync();
+        var checks = 0;
+        while (app.Services.GetRequiredService<CertificateStore>().GetExpiry() is null)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
+            if (++checks % 12 == 0)
+            {
+                Log.StillWaitingForCertificate(app.Logger, checks / 12);
+            }
+        }
+
+        Log.CertificateAvailable(app.Logger, config.EffectiveDomain);
     }
-    catch (Exception ex)
+    catch (OperationCanceledException)
     {
-        Log.ProvisioningFailed(app.Logger, ex);
+        Log.CertificateWaitTimedOut(app.Logger);
         await app.StopAsync();
         return 1;
     }
@@ -90,12 +105,18 @@ return 0;
 
 internal static partial class Log
 {
-    [LoggerMessage(EventId = 1301, Level = LogLevel.Information, Message = "Fennath starting for domain {domain}")]
+    [LoggerMessage(EventId = 1301, Level = LogLevel.Information, Message = "Fennath proxy starting for domain {domain}")]
     public static partial void Starting(ILogger logger, string domain);
 
-    [LoggerMessage(EventId = 1302, Level = LogLevel.Information, Message = "No certificate on disk for {domain} — provisioning from Let's Encrypt before accepting traffic")]
-    public static partial void ProvisioningCertificate(ILogger logger, string domain);
+    [LoggerMessage(EventId = 1302, Level = LogLevel.Information, Message = "No certificate on disk for {domain} — waiting for sidecar to provision")]
+    public static partial void WaitingForCertificate(ILogger logger, string domain);
 
-    [LoggerMessage(EventId = 1303, Level = LogLevel.Critical, Message = "Certificate provisioning failed — check DNS provider credentials, ACME server availability, and network connectivity")]
-    public static partial void ProvisioningFailed(ILogger logger, Exception ex);
+    [LoggerMessage(EventId = 1303, Level = LogLevel.Warning, Message = "Still waiting for sidecar certificate — {minutes} minute(s) elapsed")]
+    public static partial void StillWaitingForCertificate(ILogger logger, int minutes);
+
+    [LoggerMessage(EventId = 1304, Level = LogLevel.Information, Message = "Certificate available for {domain} — accepting HTTPS traffic")]
+    public static partial void CertificateAvailable(ILogger logger, string domain);
+
+    [LoggerMessage(EventId = 1305, Level = LogLevel.Critical, Message = "Timed out waiting for certificate from sidecar — check that fennath-sidecar is running and DNS credentials are correct")]
+    public static partial void CertificateWaitTimedOut(ILogger logger);
 }

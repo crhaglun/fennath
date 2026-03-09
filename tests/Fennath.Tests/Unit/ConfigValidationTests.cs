@@ -1,4 +1,5 @@
 using Fennath.Configuration;
+using Fennath.Sidecar;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -114,29 +115,34 @@ public class ConfigValidationTests
     }
 
     [Test]
-    public async Task Port_zero_fails_validation()
+    public async Task Port_zero_fails_proxy_validation()
     {
         var host = CreateHostWithConfig(config =>
         {
             config.Domain = "example.com";
-            config.Dns.Loopia.Username = "user@loopiaapi";
-            config.Dns.Loopia.Password = "secret";
-            config.Certificates.Email = "admin@example.com";
             config.Server.HttpsPort = 0;
-        });
+        }, useProxyValidator: true);
 
         var options = host.Services.GetRequiredService<IOptions<FennathConfig>>();
         await Assert.That(() => _ = options.Value).Throws<OptionsValidationException>();
     }
 
-    private static IHost CreateHostWithConfig(Action<FennathConfig> configure)
+    private static IHost CreateHostWithConfig(Action<FennathConfig> configure, bool useProxyValidator = false)
     {
         return Host.CreateDefaultBuilder()
             .ConfigureServices(services =>
             {
                 services.AddOptions<FennathConfig>()
                     .Configure(configure);
-                services.AddSingleton<IValidateOptions<FennathConfig>, FennathConfigValidator>();
+
+                if (useProxyValidator)
+                {
+                    services.AddSingleton<IValidateOptions<FennathConfig>, Fennath.Proxy.ProxyConfigValidator>();
+                }
+                else
+                {
+                    services.AddSingleton<IValidateOptions<FennathConfig>, SidecarConfigValidator>();
+                }
             })
             .Build();
     }

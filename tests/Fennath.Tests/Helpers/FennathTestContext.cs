@@ -1,5 +1,5 @@
 using Fennath.Discovery;
-using Fennath.Dns;
+using Fennath.Sidecar.Dns;
 using Fennath.Telemetry;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.TestHost;

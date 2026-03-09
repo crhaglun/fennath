@@ -2,7 +2,7 @@ using Fennath.Configuration;
 using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
-namespace Fennath.Certificates;
+namespace Fennath.Sidecar.Certificates;
 
 /// <summary>
 /// Background service that ensures the wildcard certificate is provisioned on startup
@@ -10,7 +10,7 @@ namespace Fennath.Certificates;
 /// </summary>
 public sealed partial class CertificateRenewalService(
     AcmeService AcmeService,
-    CertificateStore CertStore,
+    Fennath.Certificates.CertificateStore CertStore,
     IOptionsMonitor<FennathConfig> OptionsMonitor,
     FennathMetrics Metrics,
     TimeProvider TimeProvider,

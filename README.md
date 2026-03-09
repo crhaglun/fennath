@@ -114,9 +114,20 @@ to `appsettings.local.json` (gitignored) and edit for your environment.
 
 ## Architecture
 
-Fennath is built with .NET 10 and [YARP](https://github.com/microsoft/reverse-proxy)
-(Yet Another Reverse Proxy). Certificates are managed via [Certes](https://github.com/fszlin/certes)
-(ACME v2 client) and DNS records via Loopia's XML-RPC API.
+Fennath uses a **two-container sidecar architecture** ([ADR-014](docs/adr/014-sidecar-credential-isolation.md))
+to isolate sensitive capabilities:
+
+| Container | Role | Sensitive Access |
+|-----------|------|------------------|
+| `fennath` (proxy) | TLS termination, YARP routing, Docker discovery | Docker socket (read-only) |
+| `fennath-sidecar` | ACME certs, DNS management, IP monitoring | Loopia DNS credentials |
+
+The containers communicate via a **shared Docker volume** (`/data/shared/`):
+- Sidecar writes certificates → Proxy reloads them for zero-downtime rotation
+- Proxy writes `routes.json` (discovered subdomains) → Sidecar creates DNS records
+
+Built with .NET 10, [YARP](https://github.com/microsoft/reverse-proxy),
+[Certes](https://github.com/fszlin/certes) (ACME v2), and Loopia's XML-RPC API.
 
 See [`docs/adr/`](docs/adr/) for Architecture Decision Records explaining key design choices.
 
@@ -132,17 +143,11 @@ you're exposing before pointing it at the internet.
 - **No authentication at the proxy layer.** Fennath is a transparent proxy — each
   backend is responsible for its own authentication and authorization (see
   [ADR-008](docs/adr/008-no-proxy-auth.md)).
-- **DNS credentials have broad access.** The Loopia API credentials can manage all
-  records for your domain, not just the ones Fennath uses. They are passed as
-  environment variables, which are visible via `docker inspect`, inherited by child
-  processes, and readable from `/proc/<pid>/environ` inside the container.
-- **Docker socket access is powerful.** Read-only access to the Docker socket still
-  allows listing all containers and their environment variables.
-
-A future improvement would be to split DNS/ACME management into a separate sidecar container. 
-The proxy itself doesn't need DNS credentials during normal operation, only during certificate provisioning.
-A sidecar that holds the credentials and writes certificates and proxy configuration to a shared volume would keep DNS access and Docker socket
-access in separate containers, reducing the blast radius of a compromise in either.
+- **Credential isolation via sidecar architecture.** DNS credentials (Loopia API)
+  are only available to the sidecar container, not the internet-facing proxy.
+  Docker socket access is only available to the proxy, not the credential-holding
+  sidecar. This reduces blast radius if either container is compromised
+  ([ADR-014](docs/adr/014-sidecar-credential-isolation.md)).
 
 ## License
 

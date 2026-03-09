@@ -3,11 +3,11 @@ using Certes;
 using Certes.Acme;
 using Certes.Acme.Resource;
 using Fennath.Configuration;
-using Fennath.Dns;
+using Fennath.Sidecar.Dns;
 using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
-namespace Fennath.Certificates;
+namespace Fennath.Sidecar.Certificates;
 
 /// <summary>
 /// ACME v2 certificate provisioning via Certes.
@@ -17,7 +17,7 @@ namespace Fennath.Certificates;
 public sealed partial class AcmeService(
     IDnsProvider DnsProvider,
     DnsPropagationChecker PropagationChecker,
-    CertificateStore CertStore,
+    Fennath.Certificates.CertificateStore CertStore,
     IOptions<FennathConfig> Options,
     FennathMetrics Metrics,
     ILogger<AcmeService> Logger)

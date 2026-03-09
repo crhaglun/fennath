@@ -2,7 +2,7 @@ using System.Xml.Linq;
 using Fennath.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Fennath.Dns;
+namespace Fennath.Sidecar.Dns;
 
 /// <summary>
 /// Loopia XML-RPC DNS provider. Implements IDnsProvider against

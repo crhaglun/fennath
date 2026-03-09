@@ -2,7 +2,7 @@ using Fennath.Configuration;
 using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
-namespace Fennath.Dns;
+namespace Fennath.Sidecar.Dns;
 
 /// <summary>
 /// Background service that periodically checks the public IP and sends

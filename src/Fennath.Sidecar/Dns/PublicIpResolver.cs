@@ -2,7 +2,7 @@ using System.Net;
 using Fennath.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Fennath.Dns;
+namespace Fennath.Sidecar.Dns;
 
 /// <summary>
 /// Detects the public IP address by querying external echo services.

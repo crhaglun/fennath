@@ -1,10 +1,10 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.Extensions.Options;
 
 namespace Fennath.Configuration;
 
 /// <summary>
 /// Root configuration model, bound from the "Fennath" configuration section.
+/// Used by both proxy and sidecar containers — each validates the subset it needs.
 /// </summary>
 public sealed class FennathConfig
 {
@@ -30,16 +30,12 @@ public sealed class FennathConfig
     public string EffectiveDomain =>
         string.IsNullOrEmpty(Subdomain) ? Domain : $"{Subdomain}.{Domain}";
 
-    [ValidateObjectMembers]
     public DnsConfig Dns { get; set; } = new();
 
-    [ValidateObjectMembers]
     public CertificateConfig Certificates { get; set; } = new();
 
-    [ValidateObjectMembers]
     public DockerConfig Docker { get; set; } = new();
 
-    [ValidateObjectMembers]
     public ServerConfig Server { get; set; } = new();
 }
 
@@ -47,7 +43,6 @@ public sealed class DnsConfig
 {
     public string Provider { get; set; } = "loopia";
 
-    [ValidateObjectMembers]
     public LoopiaConfig Loopia { get; set; } = new();
 
     [Range(1, int.MaxValue)]
@@ -135,10 +130,3 @@ public sealed class ServerConfig
     [Range(1, 65535)]
     public int ExternalHttpsPort { get; set; } = 443;
 }
-
-/// <summary>
-/// Source-generated validator — activates DataAnnotations recursively on nested objects
-/// via <see cref="ValidateObjectMembersAttribute"/>.
-/// </summary>
-[OptionsValidator]
-internal sealed partial class FennathConfigValidator : IValidateOptions<FennathConfig>;

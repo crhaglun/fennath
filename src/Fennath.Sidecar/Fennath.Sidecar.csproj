@@ -1,9 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Fennath.Sidecar.Tests" />
     <InternalsVisibleTo Include="Fennath.Tests" />
   </ItemGroup>
 
@@ -12,11 +14,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Docker.DotNet" />
+    <PackageReference Include="Certes" />
+    <PackageReference Include="DnsClient" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
-    <PackageReference Include="Yarp.ReverseProxy" />
   </ItemGroup>
 </Project>

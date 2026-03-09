@@ -24,18 +24,24 @@ See [README.md](README.md) for a human-oriented overview and
 
 ```
 fennath/
-├── src/Fennath/              # Main application source
-│   ├── Configuration/        # Options-pattern config model and validation
-│   ├── Proxy/                # YARP integration and health checks
+├── src/Fennath/              # Proxy container — YARP routing, Docker discovery, TLS termination
+│   ├── Discovery/            # Route discovery (Docker labels), route aggregation
+│   ├── Proxy/                # YARP setup, config validator, cert file watcher, route file writer
+│   └── Telemetry/            # OpenTelemetry setup and proxy metrics middleware
+├── src/Fennath.Sidecar/      # Sidecar container — DNS management, ACME cert provisioning
 │   ├── Certificates/         # ACME/Let's Encrypt cert management
 │   ├── Dns/                  # DNS management: IP monitoring, reconciliation, Loopia provider
-│   ├── Discovery/            # Route discovery (Docker labels)
-│   └── Telemetry/            # OpenTelemetry setup and custom metrics
+│   └── Telemetry/            # OpenTelemetry setup for sidecar
+├── src/Fennath.Shared/       # Shared library — types used by both containers
+│   ├── Configuration/        # Options-pattern config model (FennathConfig)
+│   ├── Certificates/         # CertificateStore (in-memory + disk, with file-watch reload)
+│   └── Telemetry/            # FennathMetrics (custom OTel instruments)
 ├── tests/Fennath.Tests/      # Unit and integration tests
 ├── docs/                     # Design documents and ADRs
 ├── docker/
-│   ├── Dockerfile                # Container build
-│   └── docker-compose.yaml       # Deployment descriptor
+│   ├── Dockerfile                # Proxy container build
+│   ├── Dockerfile.sidecar        # Sidecar container build
+│   └── docker-compose.yaml       # Deployment descriptor (both containers)
 ```
 
 ## Conventions and Expectations
@@ -87,11 +93,14 @@ the interfaces should remain stable:
 
 ### Building and Running
 ```bash
-# Build
-dotnet build src/Fennath/
+# Build all projects
+dotnet build
 
-# Run locally (development)
+# Run proxy locally (development)
 dotnet run --project src/Fennath/
+
+# Run sidecar locally (development)
+dotnet run --project src/Fennath.Sidecar/
 
 # Run tests
 dotnet test
@@ -99,10 +108,13 @@ dotnet test
 # Format code (always run before committing)
 dotnet format
 
-# Docker build
+# Docker build (proxy)
 docker build -t fennath -f docker/Dockerfile .
 
-# Docker Compose deployment
+# Docker build (sidecar)
+docker build -t fennath-sidecar -f docker/Dockerfile.sidecar .
+
+# Docker Compose deployment (both containers)
 docker compose -f docker/docker-compose.yaml up -d
 ```
 

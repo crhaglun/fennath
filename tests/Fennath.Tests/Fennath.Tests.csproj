@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Fennath\Fennath.csproj" />
+    <ProjectReference Include="..\..\src\Fennath.Shared\Fennath.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Fennath.Sidecar\Fennath.Sidecar.csproj" />
   </ItemGroup>
 
   <ItemGroup>

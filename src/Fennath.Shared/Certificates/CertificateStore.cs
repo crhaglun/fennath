@@ -1,5 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
 using Fennath.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Fennath.Certificates;
@@ -7,7 +8,8 @@ namespace Fennath.Certificates;
 /// <summary>
 /// Stores the single wildcard certificate in memory and on disk.
 /// Thread-safe for concurrent reads during TLS handshakes.
-/// The application blocks on startup until a valid certificate is available.
+/// Supports file-watching reload for sidecar architecture (proxy watches
+/// cert files written by the sidecar).
 /// </summary>
 public sealed partial class CertificateStore : IDisposable
 {
@@ -66,6 +68,29 @@ public sealed partial class CertificateStore : IDisposable
     /// </summary>
     public DateTime? GetExpiry() => _certificate?.NotAfter;
 
+    /// <summary>
+    /// Reloads the certificate from disk. Called by the file watcher when
+    /// the sidecar writes a new certificate to the shared volume.
+    /// </summary>
+    public void ReloadFromDisk()
+    {
+        lock (_lock)
+        {
+            var old = _certificate;
+            _certificate = null;
+            LoadFromDisk();
+            if (old is not null && old != _certificate)
+            {
+                old.Dispose();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns the path where the wildcard certificate PFX is stored.
+    /// </summary>
+    public string GetCertificatePath() => Path.Combine(_storagePath, "wildcard.pfx");
+
     private void LoadFromDisk()
     {
         var pfxPath = Path.Combine(_storagePath, "wildcard.pfx");
@@ -99,7 +124,9 @@ public sealed partial class CertificateStore : IDisposable
     private void SaveToDisk(X509Certificate2 certificate)
     {
         var path = Path.Combine(_storagePath, "wildcard.pfx");
-        File.WriteAllBytes(path, certificate.Export(X509ContentType.Pfx));
+        var tempPath = path + ".tmp";
+        File.WriteAllBytes(tempPath, certificate.Export(X509ContentType.Pfx));
+        File.Move(tempPath, path, overwrite: true);
     }
 
     public void Dispose()
