@@ -6,12 +6,6 @@
 TLS certificate, creates DNS records, and starts routing HTTPS traffic to your
 service. No manual certificate management, no DNS console, no proxy configuration.
 
-Fennath sits on the edge of your home network as a TLS-terminating reverse proxy.
-It handles Let's Encrypt certificates, Loopia DNS records, and route discovery so
-your homelab services can stay simple.
-
-> "Fennath" means "doorways" in Sindarin, the constructed language for Tolkien's elves.
-
 ## Features
 
 - **Zero-touch HTTPS** — wildcard Let's Encrypt certs via DNS-01, automatic renewal
@@ -129,3 +123,11 @@ See [`docs/adr/`](docs/adr/) for Architecture Decision Records explaining key de
 ## License
 
 [MIT](LICENSE)
+
+## What does that word mean? What is that strange text at the top?
+
+"Fennath" is a word in Sindarin, the constructed language for Tolkien's elves. It means "doorways" / "gateways" / "front doors".  
+You can learn more about Sindarin and other constructed languages online, for instance [Parf Edhellen](https://www.elfdict.com)
+
+The title is the "Fennath" written in Tengwar, the writing system devised by Tolkien for the Elvish languages.  
+Font: https://github.com/Tosche/Alcarin-Tengwar/
