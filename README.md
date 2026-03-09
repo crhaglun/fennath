@@ -120,6 +120,23 @@ Fennath is built with .NET 10 and [YARP](https://github.com/microsoft/reverse-pr
 
 See [`docs/adr/`](docs/adr/) for Architecture Decision Records explaining key design choices.
 
+## Risk Analysis
+
+Fennath is a homelab tool, not a production security appliance. Understand what
+you're exposing before pointing it at the internet.
+
+- **You are opening ports 80/443 to the internet.** Any vulnerability in Fennath,
+  YARP, Kestrel, or your backend services is reachable from the public internet.
+- **Wildcard TLS key compromise affects all subdomains.** A single private key
+  covers `*.yourdomain.com`. If it leaks, all services are impacted.
+- **No authentication at the proxy layer.** Fennath is a transparent proxy — each
+  backend is responsible for its own authentication and authorization (see
+  [ADR-008](docs/adr/008-no-proxy-auth.md)).
+- **DNS credentials have broad access.** The Loopia API credentials can manage all
+  records for your domain, not just the ones Fennath uses.
+- **Docker socket access is powerful.** Read-only access to the Docker socket still
+  allows listing all containers and their environment variables.
+
 ## License
 
 [MIT](LICENSE)
