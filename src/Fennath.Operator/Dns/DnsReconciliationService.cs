@@ -1,6 +1,6 @@
 using Fennath.Telemetry;
 
-namespace Fennath.Sidecar.Dns;
+namespace Fennath.Operator.Dns;
 
 /// <summary>
 /// Pure executor — reads <see cref="DnsCommand"/> messages from the channel and

@@ -3,16 +3,16 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
-namespace Fennath.Sidecar.Telemetry;
+namespace Fennath.Operator.Telemetry;
 
 /// <summary>
-/// Configures OpenTelemetry traces, metrics, and logs for the sidecar.
+/// Configures OpenTelemetry traces, metrics, and logs for the operator.
 /// OTLP export is always registered — the SDK reads standard OTEL_* environment
 /// variables. When no endpoint is set, the exporter is a no-op.
 /// </summary>
-public static class SidecarTelemetrySetup
+public static class OperatorTelemetrySetup
 {
-    public static IServiceCollection AddSidecarTelemetry(this IServiceCollection services)
+    public static IServiceCollection AddOperatorTelemetry(this IServiceCollection services)
     {
         services.AddSingleton<FennathMetrics>();
 

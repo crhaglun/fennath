@@ -5,7 +5,7 @@ namespace Fennath.Proxy;
 
 /// <summary>
 /// Validates the configuration subset required by the proxy container.
-/// Does NOT require DNS credentials or Docker config (those belong to the sidecar).
+/// Does NOT require DNS credentials or Docker config (those belong to the operator).
 /// </summary>
 public sealed class ProxyConfigValidator : IValidateOptions<FennathConfig>
 {

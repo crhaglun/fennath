@@ -1,14 +1,14 @@
 using Fennath.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Fennath.Sidecar;
+namespace Fennath.Operator;
 
 /// <summary>
-/// Validates the configuration subset required by the sidecar container.
+/// Validates the configuration subset required by the operator container.
 /// Requires DNS credentials, certificate config, and Docker config.
 /// Does NOT require Server settings (those belong to the proxy).
 /// </summary>
-public sealed class SidecarConfigValidator : IValidateOptions<FennathConfig>
+public sealed class OperatorConfigValidator : IValidateOptions<FennathConfig>
 {
     public ValidateOptionsResult Validate(string? name, FennathConfig options)
     {

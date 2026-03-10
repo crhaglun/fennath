@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
 
-// YARP route configuration — written by the sidecar container to the shared volume.
+// YARP route configuration — written by the operator container to the shared volume.
 // .NET's built-in file watcher detects changes and YARP's LoadFromConfig() reloads automatically.
 builder.Configuration.AddJsonFile(SharedPaths.YarpConfigPath, optional: true, reloadOnChange: true);
 
@@ -68,7 +68,7 @@ Log.Starting(app.Logger, config.EffectiveDomain);
 await app.StartAsync();
 
 // Wait for a valid certificate to appear on the shared volume.
-// The sidecar container provisions and writes certs; we watch for changes.
+// The operator container provisions and writes certs; we watch for changes.
 // The host is already running (OTel active, /healthz available on HTTP)
 // but TLS handshakes will fail until a cert is available.
 if (app.Services.GetRequiredService<CertificateStore>().GetExpiry() is null)
@@ -109,15 +109,15 @@ internal static partial class Log
     [LoggerMessage(EventId = 1301, Level = LogLevel.Information, Message = "Fennath proxy starting for domain {domain}")]
     public static partial void Starting(ILogger logger, string domain);
 
-    [LoggerMessage(EventId = 1302, Level = LogLevel.Information, Message = "No certificate on disk for {domain} — waiting for sidecar to provision")]
+    [LoggerMessage(EventId = 1302, Level = LogLevel.Information, Message = "No certificate on disk for {domain} — waiting for operator to provision")]
     public static partial void WaitingForCertificate(ILogger logger, string domain);
 
-    [LoggerMessage(EventId = 1303, Level = LogLevel.Warning, Message = "Still waiting for sidecar certificate — {minutes} minute(s) elapsed")]
+    [LoggerMessage(EventId = 1303, Level = LogLevel.Warning, Message = "Still waiting for operator certificate — {minutes} minute(s) elapsed")]
     public static partial void StillWaitingForCertificate(ILogger logger, int minutes);
 
     [LoggerMessage(EventId = 1304, Level = LogLevel.Information, Message = "Certificate available for {domain} — accepting HTTPS traffic")]
     public static partial void CertificateAvailable(ILogger logger, string domain);
 
-    [LoggerMessage(EventId = 1305, Level = LogLevel.Critical, Message = "Timed out waiting for certificate from sidecar — check that fennath-sidecar is running and DNS credentials are correct")]
+    [LoggerMessage(EventId = 1305, Level = LogLevel.Critical, Message = "Timed out waiting for certificate from operator — check that fennath-operator is running and DNS credentials are correct")]
     public static partial void CertificateWaitTimedOut(ILogger logger);
 }

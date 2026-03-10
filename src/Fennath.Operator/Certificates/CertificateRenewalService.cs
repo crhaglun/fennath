@@ -2,7 +2,7 @@ using Fennath.Configuration;
 using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
-namespace Fennath.Sidecar.Certificates;
+namespace Fennath.Operator.Certificates;
 
 /// <summary>
 /// Background service that ensures the wildcard certificate is provisioned on startup

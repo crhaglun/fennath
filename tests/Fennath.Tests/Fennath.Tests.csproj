@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Fennath\Fennath.csproj" />
+    <ProjectReference Include="..\..\src\Fennath.Proxy\Fennath.Proxy.csproj" />
     <ProjectReference Include="..\..\src\Fennath.Shared\Fennath.Shared.csproj" />
-    <ProjectReference Include="..\..\src\Fennath.Sidecar\Fennath.Sidecar.csproj" />
+    <ProjectReference Include="..\..\src\Fennath.Operator\Fennath.Operator.csproj" />
   </ItemGroup>
 
   <ItemGroup>

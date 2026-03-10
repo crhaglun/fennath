@@ -8,8 +8,8 @@ namespace Fennath.Certificates;
 /// <summary>
 /// Stores the single wildcard certificate in memory and on disk.
 /// Thread-safe for concurrent reads during TLS handshakes.
-/// Supports file-watching reload for sidecar architecture (proxy watches
-/// cert files written by the sidecar).
+/// Supports file-watching reload for operator architecture (proxy watches
+/// cert files written by the operator).
 /// </summary>
 public sealed partial class CertificateStore : IDisposable
 {
@@ -70,7 +70,7 @@ public sealed partial class CertificateStore : IDisposable
 
     /// <summary>
     /// Reloads the certificate from disk. Called by the file watcher when
-    /// the sidecar writes a new certificate to the shared volume.
+    /// the operator writes a new certificate to the shared volume.
     /// </summary>
     public void ReloadFromDisk()
     {

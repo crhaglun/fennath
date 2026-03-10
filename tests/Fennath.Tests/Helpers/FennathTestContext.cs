@@ -1,4 +1,4 @@
-using Fennath.Sidecar.Dns;
+using Fennath.Operator.Dns;
 using Fennath.Telemetry;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.TestHost;
@@ -34,7 +34,7 @@ public sealed class FennathTestContext : IAsyncDisposable
 
     /// <summary>
     /// Updates the YARP routing configuration, simulating what happens when
-    /// the sidecar writes a new yarp-config.json.
+    /// the operator writes a new yarp-config.json.
     /// </summary>
     public void UpdateRoutes(params (string Subdomain, string Backend)[] routes)
     {

@@ -18,20 +18,20 @@ See [README.md](README.md) for a human-oriented overview and
 | `docs/implementation-plan.md` | Phased implementation plan with deliverables |
 | `docs/adr/` | Architecture Decision Records — **read these before making design changes** |
 | `docker/.env.example` | Reference configuration for Docker deployment |
-| `src/Fennath/appsettings.example.json` | Reference configuration for local development |
+| `src/Fennath.Proxy/appsettings.example.json` | Reference configuration for local development |
 
 ## Repository Layout
 
 ```
 fennath/
-├── src/Fennath/              # Proxy container — YARP routing, TLS termination (no Docker socket)
+├── src/Fennath.Proxy/         # Proxy container — YARP routing, TLS termination (no Docker socket)
 │   ├── Proxy/                # YARP setup, config validator, cert file watcher
 │   └── Telemetry/            # OpenTelemetry setup and proxy metrics middleware
-├── src/Fennath.Sidecar/      # Sidecar container — Docker discovery, DNS, ACME certs
+├── src/Fennath.Operator/      # Operator container — Docker discovery, DNS, Docker discovery, DNS, ACME certs
 │   ├── Discovery/            # Docker route discovery, proxy config writer (YARP JSON)
 │   ├── Certificates/         # ACME/Let's Encrypt cert management
 │   ├── Dns/                  # DNS management: IP monitoring, reconciliation, Loopia provider
-│   └── Telemetry/            # OpenTelemetry setup for sidecar
+│   └── Telemetry/            # OpenTelemetry setup for operator
 ├── src/Fennath.Shared/       # Shared library — types used by both containers
 │   ├── Configuration/        # Options-pattern config model (FennathConfig)
 │   ├── Certificates/         # CertificateStore (in-memory + disk, with file-watch reload)
@@ -41,7 +41,7 @@ fennath/
 ├── docs/                     # Design documents and ADRs
 ├── docker/
 │   ├── Dockerfile                # Proxy container build
-│   ├── Dockerfile.sidecar        # Sidecar container build
+│   ├── Dockerfile.operator        # Operator container build
 │   └── docker-compose.yaml       # Deployment descriptor (both containers)
 ```
 
@@ -90,7 +90,7 @@ These abstractions are central to the architecture — implementations can be sw
 the interfaces should remain stable:
 
 - `IDnsProvider` — DNS record management (Loopia is the current implementation)
-- `IRouteDiscovery` — route discovery source (Docker labels in sidecar; defined in Fennath.Shared)
+- `IRouteDiscovery` — route discovery source (Docker labels in operator; defined in Fennath.Shared)
 
 ### Building and Running
 ```bash
@@ -98,10 +98,10 @@ the interfaces should remain stable:
 dotnet build
 
 # Run proxy locally (development)
-dotnet run --project src/Fennath/
+dotnet run --project src/Fennath.Proxy/
 
-# Run sidecar locally (development)
-dotnet run --project src/Fennath.Sidecar/
+# Run operator locally (development)
+dotnet run --project src/Fennath.Operator/
 
 # Run tests
 dotnet test
@@ -112,8 +112,8 @@ dotnet format
 # Docker build (proxy)
 docker build -t fennath -f docker/Dockerfile .
 
-# Docker build (sidecar)
-docker build -t fennath-sidecar -f docker/Dockerfile.sidecar .
+# Docker build (operator)
+docker build -t fennath-operator -f docker/Dockerfile.operator .
 
 # Docker Compose deployment (both containers)
 docker compose -f docker/docker-compose.yaml up -d

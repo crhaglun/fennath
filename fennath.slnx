@@ -1,10 +1,10 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Fennath.Shared/Fennath.Shared.csproj" />
-    <Project Path="src/Fennath.Sidecar/Fennath.Sidecar.csproj" />
+    <Project Path="src/Fennath.Operator/Fennath.Operator.csproj" />
+    <Project Path="src/Fennath.Proxy/Fennath.Proxy.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Fennath.Tests/Fennath.Tests.csproj" />
   </Folder>
-  <Project Path="src/Fennath/Fennath.csproj" />
 </Solution>

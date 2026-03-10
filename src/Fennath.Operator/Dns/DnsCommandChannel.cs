@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 
-namespace Fennath.Sidecar.Dns;
+namespace Fennath.Operator.Dns;
 
 /// <summary>
 /// Commands that tell <see cref="DnsReconciliationService"/> exactly what to do.

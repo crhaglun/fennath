@@ -1,11 +1,11 @@
 using Fennath.Certificates;
 using Fennath.Configuration;
 using Fennath.Discovery;
-using Fennath.Sidecar;
-using Fennath.Sidecar.Certificates;
-using Fennath.Sidecar.Discovery;
-using Fennath.Sidecar.Dns;
-using Fennath.Sidecar.Telemetry;
+using Fennath.Operator;
+using Fennath.Operator.Certificates;
+using Fennath.Operator.Discovery;
+using Fennath.Operator.Dns;
+using Fennath.Operator.Telemetry;
 using Microsoft.Extensions.Options;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -16,10 +16,10 @@ builder.Services
     .AddOptions<FennathConfig>()
     .BindConfiguration(FennathConfig.SectionName)
     .ValidateOnStart();
-builder.Services.AddSingleton<IValidateOptions<FennathConfig>, SidecarConfigValidator>();
+builder.Services.AddSingleton<IValidateOptions<FennathConfig>, OperatorConfigValidator>();
 
 // Telemetry
-builder.Services.AddSidecarTelemetry();
+builder.Services.AddOperatorTelemetry();
 
 // Docker route discovery — polls Docker API for labeled containers
 builder.Services.AddSingleton<DockerRouteDiscovery>();
@@ -57,6 +57,6 @@ return 0;
 
 internal static partial class Log
 {
-    [LoggerMessage(EventId = 1600, Level = LogLevel.Information, Message = "Fennath sidecar starting for domain {domain}")]
+    [LoggerMessage(EventId = 1600, Level = LogLevel.Information, Message = "Fennath operator starting for domain {domain}")]
     public static partial void Starting(ILogger logger, string domain);
 }

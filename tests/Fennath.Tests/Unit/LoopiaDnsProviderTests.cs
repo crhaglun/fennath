@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text;
 using Fennath.Configuration;
-using Fennath.Sidecar.Dns;
+using Fennath.Operator.Dns;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 

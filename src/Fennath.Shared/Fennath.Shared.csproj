@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Fennath" />
-    <InternalsVisibleTo Include="Fennath.Sidecar" />
+    <InternalsVisibleTo Include="Fennath.Proxy" />
+    <InternalsVisibleTo Include="Fennath.Operator" />
     <InternalsVisibleTo Include="Fennath.Tests" />
-    <InternalsVisibleTo Include="Fennath.Sidecar.Tests" />
+    <InternalsVisibleTo Include="Fennath.Operator.Tests" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-# ADR-014: Sidecar Architecture — Credential and Privilege Isolation
+# ADR-014: Operator Architecture — Credential and Privilege Isolation
 
 ## Status
 
@@ -32,7 +32,7 @@ Responsibilities:
 
 Does **not** have: Docker socket, DNS credentials, ACME client, DNS provider, Docker.DotNet
 
-### Sidecar container (`fennath-sidecar`)
+### Operator container (`fennath-operator`)
 
 Responsibilities:
 - Docker label route discovery (requires Docker socket)
@@ -49,29 +49,29 @@ Does **not** have: Internet-exposed ports
 ```
 /data/shared/
 ├── certs/
-│   ├── wildcard.pfx        # Written by sidecar, watched by proxy
-│   └── acme-account.pem    # ACME account key (sidecar only)
-└── yarp-config.json        # Written by sidecar, watched by proxy
+│   ├── wildcard.pfx        # Written by operator, watched by proxy
+│   └── acme-account.pem    # ACME account key (operator only)
+└── yarp-config.json        # Written by operator, watched by proxy
 ```
 
-- **Route/config flow**: Sidecar discovers containers via Docker API → builds YARP-format
+- **Route/config flow**: Operator discovers containers via Docker API → builds YARP-format
   JSON config → writes `yarp-config.json` atomically → Proxy loads via .NET's built-in
   `AddJsonFile(reloadOnChange: true)` → YARP's `LoadFromConfig()` automatically applies
   route changes via IConfiguration change tokens.
 
-- **Certificate flow**: Sidecar provisions/renews cert → writes `wildcard.pfx` → Proxy
+- **Certificate flow**: Operator provisions/renews cert → writes `wildcard.pfx` → Proxy
   detects change via `FileSystemWatcher` → reloads in-memory cert (zero-downtime via
   `ServerCertificateSelector`, per ADR-007).
 
-- **DNS flow**: Sidecar discovers subdomains from Docker labels → sends
+- **DNS flow**: Operator discovers subdomains from Docker labels → sends
   `DnsCommand.SubdomainAdded` to DNS reconciliation service → creates A records.
 
 ### Project structure
 
 ```
 src/
-├── Fennath/                # Proxy container
-├── Fennath.Sidecar/        # Sidecar container
+├── Fennath.Proxy/           # Proxy container
+├── Fennath.Operator/        # Operator container
 └── Fennath.Shared/         # Shared types (config models, CertificateStore, metrics, IRouteDiscovery)
 ```
 
@@ -87,11 +87,11 @@ focused on its responsibilities.
 - **True credential isolation**: Proxy has no Docker socket and no DNS credentials.
   A compromise of the internet-facing proxy cannot read environment variables of other
   containers or modify DNS records.
-- **Principle of least privilege**: Proxy is a pure routing engine. Sidecar holds
+- **Principle of least privilege**: Proxy is a pure routing engine. Operator holds
   privileged access (Docker socket + DNS creds) but has no exposed ports.
 - **Built-in config reload**: Uses .NET's native `AddJsonFile(reloadOnChange: true)`
   and YARP's `LoadFromConfig()` — no custom file watchers needed for route changes.
-- **Independent scaling/restart**: Sidecar can restart for cert renewal without affecting
+- **Independent scaling/restart**: Operator can restart for cert renewal without affecting
   proxy traffic. Proxy can restart without re-provisioning certificates.
 - **Cleaner security audit**: No sensitive capabilities in the internet-facing container.
 
@@ -110,13 +110,13 @@ focused on its responsibilities.
 ### ADR compatibility
 
 - **ADR-001** (YARP): Unchanged — proxy still uses YARP.
-- **ADR-002** (Certes): Unchanged — sidecar uses Certes for ACME.
-- **ADR-003** (Wildcard cert): Unchanged — same cert strategy, just provisioned by sidecar.
-- **ADR-004** (Loopia): Unchanged — sidecar holds Loopia credentials.
-- **ADR-005** (Docker discovery): Modified — Docker discovery moved from proxy to sidecar.
+- **ADR-002** (Certes): Unchanged — operator uses Certes for ACME.
+- **ADR-003** (Wildcard cert): Unchanged — same cert strategy, just provisioned by operator.
+- **ADR-004** (Loopia): Unchanged — operator holds Loopia credentials.
+- **ADR-005** (Docker discovery): Modified — Docker discovery moved from proxy to operator.
   Proxy reads YARP config from shared volume instead of polling Docker directly.
 - **ADR-007** (Zero-downtime rotation): Enhanced — `FileSystemWatcher` triggers reload
   instead of in-process `StoreCertificate()` call.
 - **ADR-010** (Cert persistence): Unchanged — same disk format, shared volume.
 - **ADR-013** (DNS reconciliation): Modified — subdomain discovery is now in-process within
-  the sidecar (DockerRouteDiscovery → ProxyConfigWriter → DnsCommandChannel).
+  the operator (DockerRouteDiscovery → ProxyConfigWriter → DnsCommandChannel).

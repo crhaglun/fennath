@@ -3,10 +3,10 @@ using System.Text.Json.Nodes;
 using Fennath.Configuration;
 using Fennath.Core;
 using Fennath.Discovery;
-using Fennath.Sidecar.Dns;
+using Fennath.Operator.Dns;
 using Microsoft.Extensions.Options;
 
-namespace Fennath.Sidecar.Discovery;
+namespace Fennath.Operator.Discovery;
 
 /// <summary>
 /// Watches route discovery sources and writes a YARP-format proxy configuration

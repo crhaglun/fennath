@@ -37,7 +37,7 @@ public class RouteAggregationTests : IAsyncDisposable
             endpoints.MapGet("/", () => "from new service");
         });
 
-        // Add a new route dynamically (simulates sidecar writing new config)
+        // Add a new route dynamically (simulates operator writing new config)
         ctx.UpdateRoutes(
             ("grafana", _backend.Url),
             ("wiki", backend2.Url));
@@ -58,7 +58,7 @@ public class RouteAggregationTests : IAsyncDisposable
             ("grafana", _backend.Url), ("wiki", _backend.Url));
         var client = ctx.CreateClient();
 
-        // Remove wiki route (simulates sidecar writing updated config)
+        // Remove wiki route (simulates operator writing updated config)
         ctx.UpdateRoutes(("grafana", _backend.Url));
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/");
@@ -77,7 +77,7 @@ public class RouteAggregationTests : IAsyncDisposable
             endpoints.MapGet("/", () => "from second source");
         });
 
-        // Only one route per subdomain — dedup is now the sidecar's responsibility
+        // Only one route per subdomain — dedup is now the operator's responsibility
         await using var ctx = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
 
         var client = ctx.CreateClient();

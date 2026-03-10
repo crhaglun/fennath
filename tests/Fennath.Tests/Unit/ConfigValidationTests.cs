@@ -1,5 +1,5 @@
 using Fennath.Configuration;
-using Fennath.Sidecar;
+using Fennath.Operator;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -115,7 +115,7 @@ public class ConfigValidationTests
     }
 
     [Test]
-    public async Task Zero_docker_poll_interval_fails_sidecar_validation()
+    public async Task Zero_docker_poll_interval_fails_operator_validation()
     {
         var host = CreateHostWithConfig(config =>
         {
@@ -157,7 +157,7 @@ public class ConfigValidationTests
                 }
                 else
                 {
-                    services.AddSingleton<IValidateOptions<FennathConfig>, SidecarConfigValidator>();
+                    services.AddSingleton<IValidateOptions<FennathConfig>, OperatorConfigValidator>();
                 }
             })
             .Build();

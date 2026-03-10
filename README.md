@@ -101,7 +101,7 @@ not browser-trusted).
 dotnet build
 
 # Run locally
-dotnet run --project src/Fennath/
+dotnet run --project src/Fennath.Proxy/
 
 # Run tests
 dotnet test
@@ -109,23 +109,23 @@ dotnet test
 
 Requires [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
-For local development without Docker, copy `src/Fennath/appsettings.example.json`
+For local development without Docker, copy `src/Fennath.Proxy/appsettings.example.json`
 to `appsettings.local.json` (gitignored) and edit for your environment.
 
 ## Architecture
 
-Fennath uses a **two-container sidecar architecture** ([ADR-014](docs/adr/014-sidecar-credential-isolation.md))
+Fennath uses a **two-container operator architecture** ([ADR-014](docs/adr/014-sidecar-credential-isolation.md))
 to isolate sensitive capabilities:
 
 | Container | Role | Sensitive Access |
 |-----------|------|------------------|
 | `fennath` (proxy) | TLS termination, YARP routing | None — reads config from shared volume |
-| `fennath-sidecar` | Docker discovery, ACME certs, DNS management, IP monitoring | Docker socket (read-only), Loopia DNS credentials |
+| `fennath-operator` | Docker discovery, ACME certs, DNS management, IP monitoring | Docker socket (read-only), Loopia DNS credentials |
 
 The containers communicate via a **shared Docker volume** (`/data/shared/`):
-- Sidecar discovers routes from Docker labels → writes YARP proxy config JSON
+- Operator discovers routes from Docker labels → writes YARP proxy config JSON
 - Proxy loads config via .NET's built-in `AddJsonFile(reloadOnChange: true)` — YARP auto-reloads
-- Sidecar writes certificates → Proxy reloads them for zero-downtime rotation
+- Operator writes certificates → Proxy reloads them for zero-downtime rotation
 
 Built with .NET 10, [YARP](https://github.com/microsoft/reverse-proxy),
 [Certes](https://github.com/fszlin/certes) (ACME v2), and Loopia's XML-RPC API.
@@ -144,8 +144,8 @@ you're exposing before pointing it at the internet.
 - **No authentication at the proxy layer.** Fennath is a transparent proxy — each
   backend is responsible for its own authentication and authorization (see
   [ADR-008](docs/adr/008-no-proxy-auth.md)).
-- **Credential isolation via sidecar architecture.** DNS credentials (Loopia API) and
-  Docker socket access are only available to the sidecar container, which has no
+- **Credential isolation via operator architecture.** DNS credentials (Loopia API) and
+  Docker socket access are only available to the operator container, which has no
   internet-exposed ports. The internet-facing proxy has no sensitive capabilities —
   it reads its routing configuration from a file on a shared volume (mounted read-only).
   A compromise of the proxy cannot access DNS credentials or inspect other containers

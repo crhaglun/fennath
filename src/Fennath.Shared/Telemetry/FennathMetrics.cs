@@ -7,7 +7,7 @@ namespace Fennath.Telemetry;
 /// Central definition of all Fennath custom metrics instruments.
 /// Uses System.Diagnostics.Metrics (the .NET native API consumed by OpenTelemetry).
 /// Metric names follow ADR-006.
-/// Shared between proxy and sidecar — each uses only the instruments it needs.
+/// Shared between proxy and operator — each uses only the instruments it needs.
 /// </summary>
 public sealed class FennathMetrics
 {

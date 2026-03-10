@@ -1,6 +1,6 @@
 using Fennath.Configuration;
 using Fennath.Discovery;
-using Fennath.Sidecar.Dns;
+using Fennath.Operator.Dns;
 using Fennath.Telemetry;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Logging;
@@ -18,7 +18,7 @@ namespace Fennath.Tests.Helpers;
 /// and test doubles at I/O boundaries (InMemoryConfigProvider, FakeDnsProvider).
 ///
 /// Route configuration is injected via InMemoryConfigProvider rather than
-/// file-based config (mirroring how the sidecar writes YARP config in production).
+/// file-based config (mirroring how the operator writes YARP config in production).
 /// </summary>
 public static class FennathTestHost
 {

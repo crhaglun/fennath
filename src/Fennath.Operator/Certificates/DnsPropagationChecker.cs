@@ -4,7 +4,7 @@ using DnsClient.Protocol;
 using Fennath.Configuration;
 using Microsoft.Extensions.Options;
 
-namespace Fennath.Sidecar.Certificates;
+namespace Fennath.Operator.Certificates;
 
 /// <summary>
 /// Queries public DNS resolvers to verify that an ACME challenge TXT record

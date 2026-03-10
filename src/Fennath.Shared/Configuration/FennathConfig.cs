@@ -4,7 +4,7 @@ namespace Fennath.Configuration;
 
 /// <summary>
 /// Root configuration model, bound from the "Fennath" configuration section.
-/// Used by both proxy and sidecar containers — each validates the subset it needs.
+/// Used by both proxy and operator containers — each validates the subset it needs.
 /// </summary>
 public sealed class FennathConfig
 {

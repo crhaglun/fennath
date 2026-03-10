@@ -39,14 +39,14 @@ services:
         max-size: "50m"
         max-file: "5"
 
-  # Sidecar — Docker discovery, DNS management, ACME certificate provisioning
+  # Operator — Docker discovery, DNS management, ACME certificate provisioning
   # Has: Docker socket (read-only), DNS credentials (Loopia API)
   # Does NOT have: Internet-exposed ports (see ADR-014)
-  fennath-sidecar:
+  fennath-operator:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.sidecar
-    container_name: fennath-sidecar
+      dockerfile: docker/Dockerfile.operator
+    container_name: fennath-operator
     restart: unless-stopped
     read_only: true
     security_opt:
@@ -73,7 +73,7 @@ services:
       - Fennath__Dns__PublicIpCheckIntervalSeconds=${Fennath__Dns__PublicIpCheckIntervalSeconds:-300}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
-      - OTEL_SERVICE_NAME=fennath-sidecar
+      - OTEL_SERVICE_NAME=fennath-operator
     logging:
       driver: json-file
       options:

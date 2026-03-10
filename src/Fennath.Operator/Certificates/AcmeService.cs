@@ -3,11 +3,11 @@ using Certes;
 using Certes.Acme;
 using Certes.Acme.Resource;
 using Fennath.Configuration;
-using Fennath.Sidecar.Dns;
+using Fennath.Operator.Dns;
 using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
-namespace Fennath.Sidecar.Certificates;
+namespace Fennath.Operator.Certificates;
 
 /// <summary>
 /// ACME v2 certificate provisioning via Certes.

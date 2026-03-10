@@ -4,7 +4,7 @@ namespace Fennath.Proxy;
 
 /// <summary>
 /// Watches the certificate PFX file on the shared volume for changes.
-/// When the sidecar writes a new certificate, this service detects the change
+/// When the operator writes a new certificate, this service detects the change
 /// and reloads it into the in-memory CertificateStore for zero-downtime rotation.
 /// </summary>
 public sealed partial class CertificateFileWatcher(

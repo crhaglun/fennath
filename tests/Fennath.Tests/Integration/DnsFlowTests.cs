@@ -1,4 +1,4 @@
-using Fennath.Sidecar.Dns;
+using Fennath.Operator.Dns;
 using Fennath.Tests.Helpers;
 
 namespace Fennath.Tests.Integration;
