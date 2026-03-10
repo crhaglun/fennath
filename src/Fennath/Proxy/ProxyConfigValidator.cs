@@ -5,7 +5,7 @@ namespace Fennath.Proxy;
 
 /// <summary>
 /// Validates the configuration subset required by the proxy container.
-/// Does NOT require DNS credentials (those belong to the sidecar).
+/// Does NOT require DNS credentials or Docker config (those belong to the sidecar).
 /// </summary>
 public sealed class ProxyConfigValidator : IValidateOptions<FennathConfig>
 {
@@ -31,11 +31,6 @@ public sealed class ProxyConfigValidator : IValidateOptions<FennathConfig>
         if (options.Server.ExternalHttpsPort is < 1 or > 65535)
         {
             failures.Add("Server.ExternalHttpsPort must be between 1 and 65535.");
-        }
-
-        if (options.Docker.PollIntervalSeconds < 1)
-        {
-            failures.Add("Docker.PollIntervalSeconds must be at least 1.");
         }
 
         return failures.Count > 0

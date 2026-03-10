@@ -1,4 +1,5 @@
 using Fennath.Discovery;
+using Fennath.Sidecar.Discovery;
 
 namespace Fennath.Tests.Unit;
 
@@ -14,7 +15,7 @@ public class RouteConflictResolutionTests
             new("api", "http://localhost:8080", "docker"),
         };
 
-        var merged = RouteAggregator.Merge(routes);
+        var merged = ProxyConfigWriter.Merge(routes);
 
         await Assert.That(merged).Count().IsEqualTo(3);
     }
@@ -28,7 +29,7 @@ public class RouteConflictResolutionTests
             new("myapp", "http://container2:9090", "docker"),
         };
 
-        var merged = RouteAggregator.Merge(routes);
+        var merged = ProxyConfigWriter.Merge(routes);
 
         await Assert.That(merged).Count().IsEqualTo(1);
     }
@@ -36,7 +37,7 @@ public class RouteConflictResolutionTests
     [Test]
     public async Task Empty_input_produces_empty_output()
     {
-        var merged = RouteAggregator.Merge([]);
+        var merged = ProxyConfigWriter.Merge([]);
 
         await Assert.That(merged).IsEmpty();
     }
@@ -50,7 +51,7 @@ public class RouteConflictResolutionTests
             new("myapp", "http://container2:9090", "docker"),
         };
 
-        var merged = RouteAggregator.Merge(routes);
+        var merged = ProxyConfigWriter.Merge(routes);
 
         await Assert.That(merged).Count().IsEqualTo(1);
         await Assert.That(merged[0].BackendUrl).IsEqualTo("http://container1:8080");
@@ -65,7 +66,7 @@ public class RouteConflictResolutionTests
             new("grafana", "http://localhost:3000", "docker"),
         };
 
-        var merged = RouteAggregator.Merge(routes);
+        var merged = ProxyConfigWriter.Merge(routes);
 
         await Assert.That(merged).Count().IsEqualTo(2);
         var apex = merged.First(r => r.IsApex);

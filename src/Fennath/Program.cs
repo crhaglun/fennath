@@ -1,6 +1,6 @@
 using Fennath.Certificates;
 using Fennath.Configuration;
-using Fennath.Discovery;
+using Fennath.Core;
 using Fennath.Proxy;
 using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
@@ -8,6 +8,10 @@ using Microsoft.Extensions.Options;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+
+// YARP route configuration — written by the sidecar container to the shared volume.
+// .NET's built-in file watcher detects changes and YARP's LoadFromConfig() reloads automatically.
+builder.Configuration.AddJsonFile(SharedPaths.YarpConfigPath, optional: true, reloadOnChange: true);
 
 builder.Services
     .AddOptions<FennathConfig>()
@@ -52,9 +56,6 @@ var config = app.Services.GetRequiredService<IOptions<FennathConfig>>().Value;
 
 // HTTP → HTTPS redirect (when enabled in config)
 app.UseHttpsRedirection();
-
-// Eagerly resolve RouteAggregator to trigger initial route loading
-_ = app.Services.GetRequiredService<RouteAggregator>();
 
 app.MapHealthChecks("/healthz");
 app.MapReverseProxy(proxyPipeline =>

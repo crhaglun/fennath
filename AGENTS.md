@@ -24,17 +24,18 @@ See [README.md](README.md) for a human-oriented overview and
 
 ```
 fennath/
-├── src/Fennath/              # Proxy container — YARP routing, Docker discovery, TLS termination
-│   ├── Discovery/            # Route discovery (Docker labels), route aggregation
-│   ├── Proxy/                # YARP setup, config validator, cert file watcher, route file writer
+├── src/Fennath/              # Proxy container — YARP routing, TLS termination (no Docker socket)
+│   ├── Proxy/                # YARP setup, config validator, cert file watcher
 │   └── Telemetry/            # OpenTelemetry setup and proxy metrics middleware
-├── src/Fennath.Sidecar/      # Sidecar container — DNS management, ACME cert provisioning
+├── src/Fennath.Sidecar/      # Sidecar container — Docker discovery, DNS, ACME certs
+│   ├── Discovery/            # Docker route discovery, proxy config writer (YARP JSON)
 │   ├── Certificates/         # ACME/Let's Encrypt cert management
 │   ├── Dns/                  # DNS management: IP monitoring, reconciliation, Loopia provider
 │   └── Telemetry/            # OpenTelemetry setup for sidecar
 ├── src/Fennath.Shared/       # Shared library — types used by both containers
 │   ├── Configuration/        # Options-pattern config model (FennathConfig)
 │   ├── Certificates/         # CertificateStore (in-memory + disk, with file-watch reload)
+│   ├── Discovery/            # IRouteDiscovery interface, DiscoveredRoute record
 │   └── Telemetry/            # FennathMetrics (custom OTel instruments)
 ├── tests/Fennath.Tests/      # Unit and integration tests
 ├── docs/                     # Design documents and ADRs
@@ -89,7 +90,7 @@ These abstractions are central to the architecture — implementations can be sw
 the interfaces should remain stable:
 
 - `IDnsProvider` — DNS record management (Loopia is the current implementation)
-- `IRouteDiscovery` — route source (Docker labels)
+- `IRouteDiscovery` — route discovery source (Docker labels in sidecar; defined in Fennath.Shared)
 
 ### Building and Running
 ```bash

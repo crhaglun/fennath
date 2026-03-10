@@ -1,7 +1,9 @@
 using Fennath.Certificates;
 using Fennath.Configuration;
+using Fennath.Discovery;
 using Fennath.Sidecar;
 using Fennath.Sidecar.Certificates;
+using Fennath.Sidecar.Discovery;
 using Fennath.Sidecar.Dns;
 using Fennath.Sidecar.Telemetry;
 using Microsoft.Extensions.Options;
@@ -19,6 +21,14 @@ builder.Services.AddSingleton<IValidateOptions<FennathConfig>, SidecarConfigVali
 // Telemetry
 builder.Services.AddSidecarTelemetry();
 
+// Docker route discovery — polls Docker API for labeled containers
+builder.Services.AddSingleton<DockerRouteDiscovery>();
+builder.Services.AddSingleton<IRouteDiscovery>(sp => sp.GetRequiredService<DockerRouteDiscovery>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DockerRouteDiscovery>());
+
+// Proxy config writer — writes YARP config JSON to shared volume when routes change
+builder.Services.AddHostedService<ProxyConfigWriter>();
+
 // DNS
 builder.Services.AddHttpClient<LoopiaDnsProvider>(client => client.Timeout = TimeSpan.FromSeconds(60));
 builder.Services.AddSingleton<IDnsProvider>(sp => sp.GetRequiredService<LoopiaDnsProvider>());
@@ -33,9 +43,6 @@ builder.Services.AddSingleton<CertificateStore>();
 builder.Services.AddSingleton<DnsPropagationChecker>();
 builder.Services.AddSingleton<AcmeService>();
 builder.Services.AddHostedService<CertificateRenewalService>();
-
-// Route file watcher — reads routes.json from the proxy to learn about new subdomains
-builder.Services.AddHostedService<RouteFileWatcher>();
 
 var host = builder.Build();
 

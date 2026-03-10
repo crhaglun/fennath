@@ -1,7 +1,7 @@
 services:
-  # Reverse proxy — TLS termination, Docker route discovery, YARP routing
-  # Has: Docker socket access (read-only)
-  # Does NOT have: DNS credentials (see ADR-014)
+  # Reverse proxy — TLS termination, YARP routing
+  # Has: NOTHING sensitive — reads config from shared volume
+  # Does NOT have: Docker socket, DNS credentials (see ADR-014)
   fennath:
     build:
       context: ..
@@ -11,15 +11,11 @@ services:
     read_only: true
     security_opt:
       - no-new-privileges:true
-    # Grant access to the Docker socket (host docker group GID)
-    group_add:
-      - ${DOCKER_GID:-999}
     ports:
       - "80:${Fennath__Server__HttpPort:-8080}"
       - "443:${Fennath__Server__HttpsPort:-8443}"
     volumes:
-      - shared:/data/shared
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - shared:/data/shared:ro
     tmpfs:
       - /tmp
     environment:
@@ -27,7 +23,6 @@ services:
       - Fennath__Subdomain=${Fennath__Subdomain:-}
       - Fennath__Server__HttpsPort=${Fennath__Server__HttpsPort:-8443}
       - Fennath__Server__HttpPort=${Fennath__Server__HttpPort:-8080}
-      - Fennath__Docker__PollIntervalSeconds=${Fennath__Docker__PollIntervalSeconds:-15}
       - Fennath__Certificates__StoragePath=/data/shared/certs
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
@@ -44,9 +39,9 @@ services:
         max-size: "50m"
         max-file: "5"
 
-  # Sidecar — DNS management, ACME certificate provisioning
-  # Has: DNS credentials (Loopia API)
-  # Does NOT have: Docker socket access (see ADR-014)
+  # Sidecar — Docker discovery, DNS management, ACME certificate provisioning
+  # Has: Docker socket (read-only), DNS credentials (Loopia API)
+  # Does NOT have: Internet-exposed ports (see ADR-014)
   fennath-sidecar:
     build:
       context: ..
@@ -56,13 +51,18 @@ services:
     read_only: true
     security_opt:
       - no-new-privileges:true
+    # Grant access to the Docker socket (host docker group GID)
+    group_add:
+      - ${DOCKER_GID:-999}
     volumes:
       - shared:/data/shared
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     tmpfs:
       - /tmp
     environment:
       - Fennath__Domain=${Fennath__Domain}
       - Fennath__Subdomain=${Fennath__Subdomain:-}
+      - Fennath__Docker__PollIntervalSeconds=${Fennath__Docker__PollIntervalSeconds:-15}
       - Fennath__Dns__Loopia__Username=${Fennath__Dns__Loopia__Username}
       - Fennath__Dns__Loopia__Password=${Fennath__Dns__Loopia__Password}
       - Fennath__Certificates__Email=${Fennath__Certificates__Email}

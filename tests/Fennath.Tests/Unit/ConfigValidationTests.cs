@@ -115,6 +115,22 @@ public class ConfigValidationTests
     }
 
     [Test]
+    public async Task Zero_docker_poll_interval_fails_sidecar_validation()
+    {
+        var host = CreateHostWithConfig(config =>
+        {
+            config.Domain = "example.com";
+            config.Dns.Loopia.Username = "user@loopiaapi";
+            config.Dns.Loopia.Password = "secret";
+            config.Certificates.Email = "admin@example.com";
+            config.Docker.PollIntervalSeconds = 0;
+        });
+
+        var options = host.Services.GetRequiredService<IOptions<FennathConfig>>();
+        await Assert.That(() => _ = options.Value).Throws<OptionsValidationException>();
+    }
+
+    [Test]
     public async Task Port_zero_fails_proxy_validation()
     {
         var host = CreateHostWithConfig(config =>

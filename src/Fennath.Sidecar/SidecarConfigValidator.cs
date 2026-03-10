@@ -5,8 +5,8 @@ namespace Fennath.Sidecar;
 
 /// <summary>
 /// Validates the configuration subset required by the sidecar container.
-/// Requires DNS credentials and certificate config. Does NOT require
-/// Docker or Server settings (those belong to the proxy).
+/// Requires DNS credentials, certificate config, and Docker config.
+/// Does NOT require Server settings (those belong to the proxy).
 /// </summary>
 public sealed class SidecarConfigValidator : IValidateOptions<FennathConfig>
 {
@@ -42,6 +42,11 @@ public sealed class SidecarConfigValidator : IValidateOptions<FennathConfig>
         if (options.Certificates.RenewalCheckIntervalSeconds < 1)
         {
             failures.Add("Certificates.RenewalCheckIntervalSeconds must be at least 1.");
+        }
+
+        if (options.Docker.PollIntervalSeconds < 1)
+        {
+            failures.Add("Docker.PollIntervalSeconds must be at least 1.");
         }
 
         return failures.Count > 0

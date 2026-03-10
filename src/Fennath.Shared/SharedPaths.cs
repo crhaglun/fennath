@@ -16,7 +16,8 @@ public static class SharedPaths
     public const string CertsDirectory = "/data/shared/certs";
 
     /// <summary>
-    /// Path to the routes manifest file written by the proxy and read by the sidecar.
+    /// Path to the YARP proxy configuration file written by the sidecar
+    /// and read by the proxy via <c>AddJsonFile(reloadOnChange: true)</c>.
     /// </summary>
-    public const string RoutesManifestPath = "/data/shared/routes.json";
+    public const string YarpConfigPath = "/data/shared/yarp-config.json";
 }

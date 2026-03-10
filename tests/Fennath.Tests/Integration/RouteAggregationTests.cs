@@ -1,5 +1,4 @@
 using System.Net;
-using Fennath.Discovery;
 using Fennath.Tests.Helpers;
 using Microsoft.AspNetCore.Builder;
 
@@ -38,10 +37,10 @@ public class RouteAggregationTests : IAsyncDisposable
             endpoints.MapGet("/", () => "from new service");
         });
 
-        // Add a new route dynamically
-        ctx.RouteDiscovery.SetRoutes(
-            new DiscoveredRoute("grafana", _backend.Url, "test"),
-            new DiscoveredRoute("wiki", backend2.Url, "test"));
+        // Add a new route dynamically (simulates sidecar writing new config)
+        ctx.UpdateRoutes(
+            ("grafana", _backend.Url),
+            ("wiki", backend2.Url));
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/");
         request.Headers.Host = "wiki.example.com";
@@ -59,9 +58,8 @@ public class RouteAggregationTests : IAsyncDisposable
             ("grafana", _backend.Url), ("wiki", _backend.Url));
         var client = ctx.CreateClient();
 
-        // Remove wiki route
-        ctx.RouteDiscovery.SetRoutes(
-            new DiscoveredRoute("grafana", _backend.Url, "test"));
+        // Remove wiki route (simulates sidecar writing updated config)
+        ctx.UpdateRoutes(("grafana", _backend.Url));
 
         var request = new HttpRequestMessage(HttpMethod.Get, "/");
         request.Headers.Host = "wiki.example.com";
@@ -79,8 +77,7 @@ public class RouteAggregationTests : IAsyncDisposable
             endpoints.MapGet("/", () => "from second source");
         });
 
-        // First source claims "grafana" → _backend, second source also claims "grafana" → backend2
-        // RouteAggregator.Merge takes the first occurrence
+        // Only one route per subdomain — dedup is now the sidecar's responsibility
         await using var ctx = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
 
         var client = ctx.CreateClient();

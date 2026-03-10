@@ -1,4 +1,4 @@
-using Fennath.Discovery;
+using Fennath.Sidecar.Discovery;
 
 namespace Fennath.Tests.Unit;
 

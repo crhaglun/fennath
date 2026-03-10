@@ -119,12 +119,13 @@ to isolate sensitive capabilities:
 
 | Container | Role | Sensitive Access |
 |-----------|------|------------------|
-| `fennath` (proxy) | TLS termination, YARP routing, Docker discovery | Docker socket (read-only) |
-| `fennath-sidecar` | ACME certs, DNS management, IP monitoring | Loopia DNS credentials |
+| `fennath` (proxy) | TLS termination, YARP routing | None — reads config from shared volume |
+| `fennath-sidecar` | Docker discovery, ACME certs, DNS management, IP monitoring | Docker socket (read-only), Loopia DNS credentials |
 
 The containers communicate via a **shared Docker volume** (`/data/shared/`):
+- Sidecar discovers routes from Docker labels → writes YARP proxy config JSON
+- Proxy loads config via .NET's built-in `AddJsonFile(reloadOnChange: true)` — YARP auto-reloads
 - Sidecar writes certificates → Proxy reloads them for zero-downtime rotation
-- Proxy writes `routes.json` (discovered subdomains) → Sidecar creates DNS records
 
 Built with .NET 10, [YARP](https://github.com/microsoft/reverse-proxy),
 [Certes](https://github.com/fszlin/certes) (ACME v2), and Loopia's XML-RPC API.
@@ -143,10 +144,11 @@ you're exposing before pointing it at the internet.
 - **No authentication at the proxy layer.** Fennath is a transparent proxy — each
   backend is responsible for its own authentication and authorization (see
   [ADR-008](docs/adr/008-no-proxy-auth.md)).
-- **Credential isolation via sidecar architecture.** DNS credentials (Loopia API)
-  are only available to the sidecar container, not the internet-facing proxy.
-  Docker socket access is only available to the proxy, not the credential-holding
-  sidecar. This reduces blast radius if either container is compromised
+- **Credential isolation via sidecar architecture.** DNS credentials (Loopia API) and
+  Docker socket access are only available to the sidecar container, which has no
+  internet-exposed ports. The internet-facing proxy has no sensitive capabilities —
+  it reads its routing configuration from a file on a shared volume (mounted read-only).
+  A compromise of the proxy cannot access DNS credentials or inspect other containers
   ([ADR-014](docs/adr/014-sidecar-credential-isolation.md)).
 
 ## License

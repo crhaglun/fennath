@@ -1,10 +1,10 @@
-using Fennath.Discovery;
 using Fennath.Sidecar.Dns;
 using Fennath.Telemetry;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Yarp.ReverseProxy.Configuration;
 
 namespace Fennath.Tests.Helpers;
 
@@ -15,23 +15,31 @@ public sealed class FennathTestContext : IAsyncDisposable
 {
     private readonly IHost _host;
 
-    public FakeRouteDiscovery RouteDiscovery { get; }
+    public InMemoryConfigProvider YarpConfig { get; }
     public FakeDnsProvider DnsProvider { get; }
     public FennathMetrics Metrics { get; }
     public DnsCommandChannel DnsChannel { get; }
-    public RouteAggregator RouteAggregator { get; }
 
     internal FennathTestContext(
         IHost host,
-        FakeRouteDiscovery routeDiscovery,
+        InMemoryConfigProvider yarpConfig,
         FakeDnsProvider dnsProvider)
     {
         _host = host;
-        RouteDiscovery = routeDiscovery;
+        YarpConfig = yarpConfig;
         DnsProvider = dnsProvider;
         Metrics = host.Services.GetRequiredService<FennathMetrics>();
         DnsChannel = host.Services.GetRequiredService<DnsCommandChannel>();
-        RouteAggregator = host.Services.GetRequiredService<RouteAggregator>();
+    }
+
+    /// <summary>
+    /// Updates the YARP routing configuration, simulating what happens when
+    /// the sidecar writes a new yarp-config.json.
+    /// </summary>
+    public void UpdateRoutes(params (string Subdomain, string Backend)[] routes)
+    {
+        var (yarpRoutes, yarpClusters) = FennathTestHost.BuildYarpConfig("example.com", routes);
+        YarpConfig.Update(yarpRoutes, yarpClusters);
     }
 
     public HttpClient CreateClient()

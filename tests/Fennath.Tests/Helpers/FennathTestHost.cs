@@ -8,23 +8,28 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using Yarp.ReverseProxy.Configuration;
 
 namespace Fennath.Tests.Helpers;
 
 /// <summary>
 /// Creates a test Fennath host wired with real production services
-/// (RouteAggregator, ProxyMetricsMiddleware, DnsReconciliationService)
-/// and test doubles at I/O boundaries (FakeRouteDiscovery, FakeDnsProvider).
+/// (YARP, ProxyMetricsMiddleware, DnsReconciliationService)
+/// and test doubles at I/O boundaries (InMemoryConfigProvider, FakeDnsProvider).
+///
+/// Route configuration is injected via InMemoryConfigProvider rather than
+/// file-based config (mirroring how the sidecar writes YARP config in production).
 /// </summary>
 public static class FennathTestHost
 {
     public static async Task<FennathTestContext> CreateAsync(
         params (string Subdomain, string Backend)[] routes)
     {
-        var fakeDiscovery = new FakeRouteDiscovery();
         var fakeDns = new FakeDnsProvider();
+        const string testDomain = "example.com";
+
+        var (yarpRoutes, yarpClusters) = BuildYarpConfig(testDomain, routes);
+        var inMemoryConfig = new InMemoryConfigProvider(yarpRoutes, yarpClusters);
 
         var host = Host.CreateDefaultBuilder()
             .ConfigureWebHostDefaults(web =>
@@ -35,28 +40,16 @@ public static class FennathTestHost
                     // Configuration with valid test defaults
                     services.AddOptions<FennathConfig>().Configure(config =>
                     {
-                        config.Domain = "example.com";
+                        config.Domain = testDomain;
                         config.Dns.Loopia.Username = "test";
                         config.Dns.Loopia.Password = "test";
                         config.Certificates.Email = "test@example.com";
                     });
 
-                    // YARP reverse proxy
-                    var inMemoryConfig = new InMemoryConfigProvider([], []);
+                    // YARP reverse proxy — test uses InMemoryConfigProvider
                     services.AddSingleton(inMemoryConfig);
                     services.AddSingleton<IProxyConfigProvider>(inMemoryConfig);
                     services.AddReverseProxy();
-
-                    // Route discovery — test double
-                    services.AddSingleton(fakeDiscovery);
-                    services.AddSingleton<IRouteDiscovery>(sp => sp.GetRequiredService<FakeRouteDiscovery>());
-
-                    // Route aggregation — real production code
-                    services.AddSingleton(sp => new RouteAggregator(
-                        sp.GetServices<IRouteDiscovery>(),
-                        sp.GetRequiredService<InMemoryConfigProvider>(),
-                        sp.GetRequiredService<IOptions<FennathConfig>>().Value.EffectiveDomain,
-                        sp.GetRequiredService<ILogger<RouteAggregator>>()));
 
                     // DNS — test double + real reconciliation service
                     services.AddSingleton(fakeDns);
@@ -83,16 +76,45 @@ public static class FennathTestHost
             })
             .Build();
 
-        // Set initial routes before starting (RouteAggregator subscribes in constructor)
-        fakeDiscovery.SetRoutes(routes
-            .Select(r => new DiscoveredRoute(r.Subdomain, r.Backend, "test"))
-            .ToArray());
-
-        // Eagerly resolve RouteAggregator to trigger initial route building
-        _ = host.Services.GetRequiredService<RouteAggregator>();
-
         await host.StartAsync();
 
-        return new FennathTestContext(host, fakeDiscovery, fakeDns);
+        return new FennathTestContext(host, inMemoryConfig, fakeDns);
+    }
+
+    /// <summary>
+    /// Builds YARP route and cluster configuration from subdomain/backend tuples.
+    /// </summary>
+    internal static (List<RouteConfig> Routes, List<ClusterConfig> Clusters) BuildYarpConfig(
+        string domain, (string Subdomain, string Backend)[] routes)
+    {
+        var yarpRoutes = new List<RouteConfig>();
+        var yarpClusters = new List<ClusterConfig>();
+
+        foreach (var (subdomain, backend) in routes)
+        {
+            var routeId = $"route-{subdomain}";
+            var clusterId = $"cluster-{subdomain}";
+            var host = subdomain == DiscoveredRoute.ApexMarker
+                ? domain
+                : $"{subdomain}.{domain}";
+
+            yarpRoutes.Add(new RouteConfig
+            {
+                RouteId = routeId,
+                ClusterId = clusterId,
+                Match = new RouteMatch { Hosts = [host] }
+            });
+
+            yarpClusters.Add(new ClusterConfig
+            {
+                ClusterId = clusterId,
+                Destinations = new Dictionary<string, DestinationConfig>
+                {
+                    ["default"] = new DestinationConfig { Address = backend }
+                }
+            });
+        }
+
+        return (yarpRoutes, yarpClusters);
     }
 }

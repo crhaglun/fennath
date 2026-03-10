@@ -1,10 +1,11 @@
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Fennath.Configuration;
+using Fennath.Discovery;
 using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
-namespace Fennath.Discovery;
+namespace Fennath.Sidecar.Discovery;
 
 /// <summary>
 /// Discovers routes from Docker container labels by polling the Docker API.
