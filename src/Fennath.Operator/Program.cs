@@ -39,9 +39,11 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<DockerRouteDiscove
 builder.Services.AddHostedService<ProxyConfigWriter>();
 
 // DNS
-builder.Services.AddHttpClient<LoopiaDnsProvider>(client => client.Timeout = TimeSpan.FromSeconds(60));
+builder.Services.AddHttpClient<LoopiaDnsProvider>(client => client.Timeout = TimeSpan.FromSeconds(60))
+    .AddStandardResilienceHandler();
 builder.Services.AddSingleton<IDnsProvider>(sp => sp.GetRequiredService<LoopiaDnsProvider>());
-builder.Services.AddHttpClient<PublicIpResolver>(client => client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddHttpClient<PublicIpResolver>(client => client.Timeout = TimeSpan.FromSeconds(30))
+    .AddStandardResilienceHandler();
 builder.Services.AddSingleton<PublicIpResolver>();
 builder.Services.AddSingleton<DnsCommandChannel>();
 builder.Services.AddHostedService<IpMonitorService>();

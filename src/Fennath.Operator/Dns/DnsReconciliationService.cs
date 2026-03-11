@@ -38,13 +38,17 @@ public sealed partial class DnsReconciliationService(
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 LogCommandFailed(Logger, command.GetType().Name, ex);
+
+                // Re-queue the failed command so it will be retried after a brief delay.
+                // The channel is bounded with DropOldest, so this won't block.
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                Channel.Send(command);
             }
         }
     }
 
     private async Task HandleIpChangedAsync(string newIp, CancellationToken ct)
     {
-        _currentIp = newIp;
         LogIpChangedUpdatingAll(Logger, newIp, _managedSubdomains.Count);
 
         foreach (var sub in _managedSubdomains)
@@ -52,6 +56,9 @@ public sealed partial class DnsReconciliationService(
             await DnsProvider.UpsertARecordAsync(sub, newIp, ct: ct);
         }
 
+        // Only record the IP after all updates succeed — if any threw,
+        // the command will be re-queued and retried on the next attempt.
+        _currentIp = newIp;
         Metrics.DnsUpdatesTotal.Add(1);
     }
 

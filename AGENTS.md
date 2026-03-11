@@ -124,6 +124,7 @@ docker compose -f docker/docker-compose.yaml up -d
 - **Certes** — ACME v2 client for Let's Encrypt (targets .NET Standard 2.0; see ADR-002)
 - **DnsClient** (`DnsClient.NET`) — DNS queries for ACME challenge propagation verification
 - **OpenTelemetry .NET SDK** — traces, metrics, logs export (see ADR-006)
+- **Microsoft.Extensions.Http.Resilience** — retry/circuit-breaker for outbound HTTP (Loopia API, IP echo services)
 - **TUnit** — test framework
 
 ### Package Management
