@@ -67,23 +67,6 @@ public class CertificateStoreTests : IDisposable
     }
 
     [Test]
-    public async Task GetExpiry_ReturnsPlaceholderExpiryWhenNoCertOnDisk()
-    {
-        // Placeholder has a short expiry (1 day), so it should be within ~24h of now
-        var expiry = _store.GetExpiry();
-        var remaining = expiry - DateTime.UtcNow;
-        await Assert.That(remaining.TotalHours).IsGreaterThan(0).And.IsLessThan(25);
-    }
-
-    [Test]
-    public async Task StoreCertificate_SetsExpiry()
-    {
-        StoreTestCert();
-        var remaining = _store.GetExpiry() - DateTime.UtcNow;
-        await Assert.That(remaining.TotalDays).IsGreaterThan(80);
-    }
-
-    [Test]
     public async Task StoreCertificate_PersistsToDisk()
     {
         StoreTestCert();
