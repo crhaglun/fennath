@@ -32,11 +32,14 @@ public sealed partial class CertificateRenewalService(
         try
         {
             var wildcardHost = $"*.{OptionsMonitor.CurrentValue.EffectiveDomain}";
-            var expiry = CertStore.GetExpiry();
 
-            if (expiry is not null)
+            if (CertStore.IsPlaceholder)
             {
-                var remaining = expiry.Value - DateTime.UtcNow;
+                LogCertificateProvisioning(Logger, wildcardHost);
+            }
+            else
+            {
+                var remaining = CertStore.GetExpiry() - DateTime.UtcNow;
                 Metrics.CertExpiryDays.Record(remaining.TotalDays,
                     new KeyValuePair<string, object?>("hostname", wildcardHost));
 
@@ -48,10 +51,6 @@ public sealed partial class CertificateRenewalService(
                 }
 
                 LogCertificateRenewing(Logger, wildcardHost, remaining.Days);
-            }
-            else
-            {
-                LogCertificateProvisioning(Logger, wildcardHost);
             }
 
             await AcmeService.ProvisionWildcardCertificateAsync(ct);

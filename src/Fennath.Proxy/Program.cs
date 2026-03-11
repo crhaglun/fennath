@@ -65,42 +65,7 @@ app.MapReverseProxy(proxyPipeline =>
 
 Log.Starting(app.Logger, config.EffectiveDomain);
 
-await app.StartAsync();
-
-// Wait for a valid certificate to appear on the shared volume.
-// The operator container provisions and writes certs; we watch for changes.
-// The host is already running (OTel active, /healthz available on HTTP)
-// but TLS handshakes will fail until a cert is available.
-if (app.Services.GetRequiredService<CertificateStore>().GetExpiry() is null)
-{
-    Log.WaitingForCertificate(app.Logger, config.EffectiveDomain);
-
-    using var cts = CancellationTokenSource.CreateLinkedTokenSource(app.Lifetime.ApplicationStopping);
-    cts.CancelAfter(TimeSpan.FromMinutes(10));
-
-    try
-    {
-        var checks = 0;
-        while (app.Services.GetRequiredService<CertificateStore>().GetExpiry() is null)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
-            if (++checks % 12 == 0)
-            {
-                Log.StillWaitingForCertificate(app.Logger, checks / 12);
-            }
-        }
-
-        Log.CertificateAvailable(app.Logger, config.EffectiveDomain);
-    }
-    catch (OperationCanceledException)
-    {
-        Log.CertificateWaitTimedOut(app.Logger);
-        await app.StopAsync();
-        return 1;
-    }
-}
-
-await app.WaitForShutdownAsync();
+await app.RunAsync();
 
 return 0;
 
@@ -108,16 +73,4 @@ internal static partial class Log
 {
     [LoggerMessage(EventId = 1301, Level = LogLevel.Information, Message = "Fennath proxy starting for domain {domain}")]
     public static partial void Starting(ILogger logger, string domain);
-
-    [LoggerMessage(EventId = 1302, Level = LogLevel.Information, Message = "No certificate on disk for {domain} — waiting for operator to provision")]
-    public static partial void WaitingForCertificate(ILogger logger, string domain);
-
-    [LoggerMessage(EventId = 1303, Level = LogLevel.Warning, Message = "Still waiting for operator certificate — {minutes} minute(s) elapsed")]
-    public static partial void StillWaitingForCertificate(ILogger logger, int minutes);
-
-    [LoggerMessage(EventId = 1304, Level = LogLevel.Information, Message = "Certificate available for {domain} — accepting HTTPS traffic")]
-    public static partial void CertificateAvailable(ILogger logger, string domain);
-
-    [LoggerMessage(EventId = 1305, Level = LogLevel.Critical, Message = "Timed out waiting for certificate from operator — check that fennath-operator is running and DNS credentials are correct")]
-    public static partial void CertificateWaitTimedOut(ILogger logger);
 }

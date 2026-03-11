@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Fennath.Configuration;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,12 @@ namespace Fennath.Certificates;
 /// Supports file-watching reload for operator architecture (proxy watches
 /// cert files written by the operator).
 /// </summary>
+/// <remarks>
+/// The <c>_certificate</c> field is never null — on construction it is initialized
+/// to either a cert loaded from disk or a self-signed placeholder. This guarantees
+/// that <see cref="GetCertificate"/> always returns a usable certificate for Kestrel's
+/// <c>ServerCertificateSelector</c>, and eliminates null windows during reload.
+/// </remarks>
 public sealed partial class CertificateStore : IDisposable
 {
     private readonly Lock _lock = new();
@@ -18,7 +25,8 @@ public sealed partial class CertificateStore : IDisposable
     private readonly string _wildcardHost;
     private readonly ILogger<CertificateStore> _logger;
 
-    private X509Certificate2? _certificate;
+    private X509Certificate2 _certificate;
+    private bool _isPlaceholder;
 
     public CertificateStore(IOptions<FennathConfig> options, ILogger<CertificateStore> logger)
     {
@@ -27,13 +35,24 @@ public sealed partial class CertificateStore : IDisposable
         _logger = logger;
 
         Directory.CreateDirectory(_storagePath);
+
+        _certificate = GeneratePlaceholderCert();
+        _isPlaceholder = true;
+
         LoadFromDisk();
     }
 
     /// <summary>
-    /// Returns the current certificate, or null if none is loaded.
+    /// True when the store holds a self-signed placeholder certificate because
+    /// no real certificate has been loaded from disk or provisioned yet.
     /// </summary>
-    public X509Certificate2? GetCertificate() => _certificate;
+    public bool IsPlaceholder => _isPlaceholder;
+
+    /// <summary>
+    /// Returns the current certificate. Never null — returns a self-signed
+    /// placeholder when no real certificate is available.
+    /// </summary>
+    public X509Certificate2 GetCertificate() => _certificate;
 
     /// <summary>
     /// Stores a certificate from Let's Encrypt, replacing any existing one.
@@ -44,6 +63,7 @@ public sealed partial class CertificateStore : IDisposable
         {
             var old = _certificate;
             _certificate = certificate;
+            _isPlaceholder = false;
 
             try
             {
@@ -54,7 +74,7 @@ public sealed partial class CertificateStore : IDisposable
                 LogDiskWriteFailed(_logger, ex);
             }
 
-            if (old is not null && old != certificate)
+            if (old != certificate)
             {
                 old.Dispose();
             }
@@ -64,24 +84,31 @@ public sealed partial class CertificateStore : IDisposable
     }
 
     /// <summary>
-    /// Returns the expiry of the certificate, or null if none is loaded.
+    /// Returns the expiry of the current certificate.
     /// </summary>
-    public DateTime? GetExpiry() => _certificate?.NotAfter;
+    public DateTime GetExpiry() => _certificate.NotAfter;
 
     /// <summary>
     /// Reloads the certificate from disk. Called by the file watcher when
     /// the operator writes a new certificate to the shared volume.
+    /// Uses load-then-swap to avoid any null window visible to concurrent readers.
     /// </summary>
     public void ReloadFromDisk()
     {
         lock (_lock)
         {
             var old = _certificate;
-            _certificate = null;
-            LoadFromDisk();
-            if (old is not null && old != _certificate)
+            var loaded = TryLoadFromDisk();
+
+            if (loaded is not null)
             {
-                old.Dispose();
+                _certificate = loaded;
+                _isPlaceholder = false;
+
+                if (old != loaded)
+                {
+                    old.Dispose();
+                }
             }
         }
     }
@@ -93,10 +120,26 @@ public sealed partial class CertificateStore : IDisposable
 
     private void LoadFromDisk()
     {
+        var loaded = TryLoadFromDisk();
+        if (loaded is not null)
+        {
+            var old = _certificate;
+            _certificate = loaded;
+            _isPlaceholder = false;
+
+            if (old != loaded)
+            {
+                old.Dispose();
+            }
+        }
+    }
+
+    private X509Certificate2? TryLoadFromDisk()
+    {
         var pfxPath = Path.Combine(_storagePath, "wildcard.pfx");
         if (!File.Exists(pfxPath))
         {
-            return;
+            return null;
         }
 
         try
@@ -106,19 +149,41 @@ public sealed partial class CertificateStore : IDisposable
 
             if (cert.NotAfter > DateTime.UtcNow)
             {
-                _certificate = cert;
                 LogCertificateLoaded(_logger, _wildcardHost, cert.NotAfter);
+                return cert;
             }
-            else
-            {
-                LogCertificateExpired(_logger, _wildcardHost, cert.NotAfter);
-                cert.Dispose();
-            }
+
+            LogCertificateExpired(_logger, _wildcardHost, cert.NotAfter);
+            cert.Dispose();
+            return null;
         }
         catch (Exception ex)
         {
             LogCertificateLoadFailed(_logger, pfxPath, ex);
+            return null;
         }
+    }
+
+    private X509Certificate2 GeneratePlaceholderCert()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest(
+            $"CN={_wildcardHost}", rsa,
+            HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+
+        request.CertificateExtensions.Add(
+            new X509BasicConstraintsExtension(false, false, 0, false));
+
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        var notAfter = DateTimeOffset.UtcNow.AddDays(1);
+
+        var cert = request.CreateSelfSigned(notBefore, notAfter);
+
+        // Re-import so the private key is usable across platforms
+        var pfxBytes = cert.Export(X509ContentType.Pfx);
+        cert.Dispose();
+        return X509CertificateLoader.LoadPkcs12(pfxBytes, null,
+            X509KeyStorageFlags.Exportable);
     }
 
     private void SaveToDisk(X509Certificate2 certificate)
@@ -131,7 +196,7 @@ public sealed partial class CertificateStore : IDisposable
 
     public void Dispose()
     {
-        _certificate?.Dispose();
+        _certificate.Dispose();
     }
 
     [LoggerMessage(EventId = 1120, Level = LogLevel.Information, Message = "Certificate stored for {hostname}, expires {expiry}")]

@@ -30,9 +30,10 @@ public class CertificateStoreTests : IDisposable
     }
 
     [Test]
-    public async Task GetCertificate_ReturnsNullWhenEmpty()
+    public async Task GetCertificate_ReturnsPlaceholderWhenNoCertOnDisk()
     {
-        await Assert.That(_store.GetCertificate()).IsNull();
+        await Assert.That(_store.GetCertificate()).IsNotNull();
+        await Assert.That(_store.IsPlaceholder).IsTrue();
     }
 
     [Test]
@@ -40,19 +41,46 @@ public class CertificateStoreTests : IDisposable
     {
         StoreTestCert();
         await Assert.That(_store.GetCertificate()).IsNotNull();
+        await Assert.That(_store.IsPlaceholder).IsFalse();
     }
 
     [Test]
-    public async Task GetExpiry_ReturnsNullWhenEmpty()
+    public async Task IsPlaceholder_TrueWhenNoCertOnDisk()
     {
-        await Assert.That(_store.GetExpiry()).IsNull();
+        await Assert.That(_store.IsPlaceholder).IsTrue();
+    }
+
+    [Test]
+    public async Task IsPlaceholder_FalseAfterStoreCertificate()
+    {
+        StoreTestCert();
+        await Assert.That(_store.IsPlaceholder).IsFalse();
+    }
+
+    [Test]
+    public async Task IsPlaceholder_FalseAfterReloadFromDisk()
+    {
+        StoreTestCert();
+
+        using var newStore = CreateStore();
+        await Assert.That(newStore.IsPlaceholder).IsFalse();
+    }
+
+    [Test]
+    public async Task GetExpiry_ReturnsPlaceholderExpiryWhenNoCertOnDisk()
+    {
+        // Placeholder has a short expiry (1 day), so it should be within ~24h of now
+        var expiry = _store.GetExpiry();
+        var remaining = expiry - DateTime.UtcNow;
+        await Assert.That(remaining.TotalHours).IsGreaterThan(0).And.IsLessThan(25);
     }
 
     [Test]
     public async Task StoreCertificate_SetsExpiry()
     {
         StoreTestCert();
-        await Assert.That(_store.GetExpiry()).IsNotNull();
+        var remaining = _store.GetExpiry() - DateTime.UtcNow;
+        await Assert.That(remaining.TotalDays).IsGreaterThan(80);
     }
 
     [Test]
@@ -71,7 +99,8 @@ public class CertificateStoreTests : IDisposable
         StoreTestCert();
 
         using var newStore = CreateStore();
-        await Assert.That(newStore.GetExpiry()).IsNotNull();
+        var remaining = newStore.GetExpiry() - DateTime.UtcNow;
+        await Assert.That(remaining.TotalDays).IsGreaterThan(80);
     }
 
     [Test]
@@ -83,7 +112,8 @@ public class CertificateStoreTests : IDisposable
             expired.Export(X509ContentType.Pfx));
 
         using var newStore = CreateStore();
-        await Assert.That(newStore.GetExpiry()).IsNull();
+        // Expired cert is skipped; store falls back to placeholder
+        await Assert.That(newStore.IsPlaceholder).IsTrue();
     }
 
     [Test]
@@ -98,6 +128,15 @@ public class CertificateStoreTests : IDisposable
         var secondExpiry = _store.GetExpiry();
 
         await Assert.That(secondExpiry).IsNotEqualTo(firstExpiry);
+    }
+
+    [Test]
+    public async Task ReloadFromDisk_NeverReturnsNull()
+    {
+        // Even when there's nothing on disk, reload should keep the placeholder
+        _store.ReloadFromDisk();
+        await Assert.That(_store.GetCertificate()).IsNotNull();
+        await Assert.That(_store.IsPlaceholder).IsTrue();
     }
 
     private void StoreTestCert()
