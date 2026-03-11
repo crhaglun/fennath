@@ -36,10 +36,16 @@ public sealed partial class CertificateStore : IDisposable
 
         Directory.CreateDirectory(_storagePath);
 
-        _certificate = GeneratePlaceholderCert();
-        _isPlaceholder = true;
-
-        LoadFromDisk();
+        if (TryLoadFromDisk(out var cert))
+        {
+            _certificate = cert;
+            _isPlaceholder = false;
+        }
+        else
+        {
+            _certificate = GeneratePlaceholderCert();
+            _isPlaceholder = true;
+        }
     }
 
     /// <summary>
@@ -97,11 +103,9 @@ public sealed partial class CertificateStore : IDisposable
     {
         lock (_lock)
         {
-            var old = _certificate;
-            var loaded = TryLoadFromDisk();
-
-            if (loaded is not null)
+            if (TryLoadFromDisk(out var loaded))
             {
+                var old = _certificate;
                 _certificate = loaded;
                 _isPlaceholder = false;
 
@@ -118,28 +122,13 @@ public sealed partial class CertificateStore : IDisposable
     /// </summary>
     public string GetCertificatePath() => Path.Combine(_storagePath, "wildcard.pfx");
 
-    private void LoadFromDisk()
+    private bool TryLoadFromDisk(out X509Certificate2 certificate)
     {
-        var loaded = TryLoadFromDisk();
-        if (loaded is not null)
-        {
-            var old = _certificate;
-            _certificate = loaded;
-            _isPlaceholder = false;
-
-            if (old != loaded)
-            {
-                old.Dispose();
-            }
-        }
-    }
-
-    private X509Certificate2? TryLoadFromDisk()
-    {
+        certificate = null!;
         var pfxPath = Path.Combine(_storagePath, "wildcard.pfx");
         if (!File.Exists(pfxPath))
         {
-            return null;
+            return false;
         }
 
         try
@@ -150,17 +139,18 @@ public sealed partial class CertificateStore : IDisposable
             if (cert.NotAfter > DateTime.UtcNow)
             {
                 LogCertificateLoaded(_logger, _wildcardHost, cert.NotAfter);
-                return cert;
+                certificate = cert;
+                return true;
             }
 
             LogCertificateExpired(_logger, _wildcardHost, cert.NotAfter);
             cert.Dispose();
-            return null;
+            return false;
         }
         catch (Exception ex)
         {
             LogCertificateLoadFailed(_logger, pfxPath, ex);
-            return null;
+            return false;
         }
     }
 
