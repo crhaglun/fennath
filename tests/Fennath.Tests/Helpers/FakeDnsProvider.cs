@@ -9,7 +9,6 @@ namespace Fennath.Tests.Helpers;
 public sealed class FakeDnsProvider : IDnsProvider
 {
     public List<(string Subdomain, string Ip, int Ttl)> UpsertedARecords { get; } = [];
-    public List<string> RemovedARecords { get; } = [];
     public List<(string Subdomain, string Value, int Ttl)> CreatedTxtRecords { get; } = [];
     public List<string> RemovedTxtRecords { get; } = [];
 
@@ -19,13 +18,6 @@ public sealed class FakeDnsProvider : IDnsProvider
     {
         UpsertedARecords.Add((subdomain, ipAddress, ttl));
         _aRecords[subdomain] = [ipAddress];
-        return Task.CompletedTask;
-    }
-
-    public Task RemoveARecordAsync(string subdomain, CancellationToken ct = default)
-    {
-        RemovedARecords.Add(subdomain);
-        _aRecords.Remove(subdomain);
         return Task.CompletedTask;
     }
 

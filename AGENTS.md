@@ -15,8 +15,8 @@ See [README.md](README.md) for a human-oriented overview and
 |----------|---------|
 | `README.md` | Human-oriented project overview |
 | `AGENTS.md` | This file — agent guidance and expectations |
-| `docs/implementation-plan.md` | Phased implementation plan with deliverables |
 | `docs/adr/` | Architecture Decision Records — **read these before making design changes** |
+| `docs/requirements.md` | Functional and non-functional requirements |
 | `docker/.env.example` | Reference configuration for Docker deployment |
 | `src/Fennath.Proxy/appsettings.example.json` | Reference configuration for local development |
 

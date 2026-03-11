@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Fennath.Operator.Configuration;
-using Fennath.Core;
 using Fennath.Discovery;
 using Fennath.Operator.Dns;
 using Microsoft.Extensions.Options;
@@ -23,7 +22,7 @@ public sealed partial class ProxyConfigWriter(
     ILogger<ProxyConfigWriter> logger) : IHostedService, IDisposable
 {
     private readonly IReadOnlyList<IRouteDiscovery> _sources = sources.ToList();
-    private readonly string _configPath = SharedPaths.YarpConfigPath;
+    private readonly string _configPath = config.Value.YarpConfigPath;
     private readonly string _domain = config.Value.EffectiveDomain;
     private readonly Lock _lock = new();
     private HashSet<string> _knownSubdomains = new(StringComparer.OrdinalIgnoreCase);

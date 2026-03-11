@@ -75,19 +75,6 @@ public sealed partial class LoopiaDnsProvider(
         LogARecordUpdated(Logger, subdomain, ipAddress);
     }
 
-    public async Task RemoveARecordAsync(string subdomain, CancellationToken ct = default)
-    {
-        var registrarSub = ToRegistrarSubdomain(subdomain, Prefix);
-        var records = await GetZoneRecordsAsync(registrarSub, ct);
-
-        foreach (var record in records.Where(r => r.Type == "A"))
-        {
-            await RemoveZoneRecordAsync(registrarSub, record.RecordId, ct);
-        }
-
-        LogARecordRemoved(Logger, subdomain);
-    }
-
     public async Task CreateTxtRecordAsync(string subdomain, string value, int ttl = 60, CancellationToken ct = default)
     {
         var registrarSub = ToRegistrarSubdomain(subdomain, Prefix);
@@ -314,9 +301,6 @@ public sealed partial class LoopiaDnsProvider(
 
     [LoggerMessage(EventId = 1011, Level = LogLevel.Information, Message = "Updated A record for '{subdomain}' to {ipAddress}")]
     private static partial void LogARecordUpdated(ILogger logger, string subdomain, string ipAddress);
-
-    [LoggerMessage(EventId = 1012, Level = LogLevel.Information, Message = "Removed A record(s) for '{subdomain}'")]
-    private static partial void LogARecordRemoved(ILogger logger, string subdomain);
 
     [LoggerMessage(EventId = 1013, Level = LogLevel.Information, Message = "Created TXT record for '{subdomain}'")]
     private static partial void LogTxtRecordCreated(ILogger logger, string subdomain);

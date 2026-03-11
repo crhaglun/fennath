@@ -27,6 +27,12 @@ public sealed class OperatorConfig
 
     [ValidateObjectMembers]
     public DockerConfig Docker { get; set; } = new();
+
+    /// <summary>
+    /// Path to write the YARP proxy config JSON file on the shared volume.
+    /// The proxy watches this file for hot-reload.
+    /// </summary>
+    public string YarpConfigPath { get; set; } = "/data/shared/yarp-config.json";
 }
 
 public sealed class DnsConfig

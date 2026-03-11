@@ -1,4 +1,3 @@
-using Fennath.Configuration;
 using Fennath.Discovery;
 using Fennath.Operator.Dns;
 using Fennath.Proxy.Configuration;
@@ -42,10 +41,6 @@ public static class FennathTestHost
                     services.AddOptions<ProxyConfig>().Configure(config =>
                     {
                         config.Domain = testDomain;
-                    });
-                    services.AddOptions<CertificateStoreOptions>().Configure(opts =>
-                    {
-                        opts.Domain = testDomain;
                     });
 
                     // YARP reverse proxy — test uses InMemoryConfigProvider

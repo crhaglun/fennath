@@ -12,11 +12,6 @@ public interface IDnsProvider
     Task UpsertARecordAsync(string subdomain, string ipAddress, int ttl = 300, CancellationToken ct = default);
 
     /// <summary>
-    /// Removes an A record for the given subdomain.
-    /// </summary>
-    Task RemoveARecordAsync(string subdomain, CancellationToken ct = default);
-
-    /// <summary>
     /// Creates a TXT record (used for ACME DNS-01 challenges).
     /// </summary>
     Task CreateTxtRecordAsync(string subdomain, string value, int ttl = 60, CancellationToken ct = default);

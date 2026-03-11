@@ -24,6 +24,12 @@ public sealed class ProxyConfig
     public ProxyServerConfig Server { get; set; } = new();
 
     public ProxyCertificateConfig Certificates { get; set; } = new();
+
+    /// <summary>
+    /// Path to the YARP proxy config JSON file on the shared volume,
+    /// written by the operator and watched by the proxy for hot-reload.
+    /// </summary>
+    public string YarpConfigPath { get; set; } = "/data/shared/yarp-config.json";
 }
 
 public sealed class ProxyServerConfig

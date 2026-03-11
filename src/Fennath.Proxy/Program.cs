@@ -1,6 +1,5 @@
 using Fennath.Certificates;
 using Fennath.Configuration;
-using Fennath.Core;
 using Fennath.Proxy;
 using Fennath.Proxy.Configuration;
 using Fennath.Telemetry;
@@ -12,7 +11,10 @@ builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, relo
 
 // YARP route configuration — written by the operator container to the shared volume.
 // .NET's built-in file watcher detects changes and YARP's LoadFromConfig() reloads automatically.
-builder.Configuration.AddJsonFile(SharedPaths.YarpConfigPath, optional: true, reloadOnChange: true);
+// We need to resolve the path before building the host, so we bind config eagerly here.
+var yarpConfigPath = builder.Configuration.GetSection("Fennath")["YarpConfigPath"]
+    ?? "/data/shared/yarp-config.json";
+builder.Configuration.AddJsonFile(yarpConfigPath, optional: true, reloadOnChange: true);
 
 builder.Services
     .AddOptions<ProxyConfig>()
