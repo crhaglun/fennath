@@ -1,4 +1,4 @@
-using Fennath.Configuration;
+using Fennath.Operator.Configuration;
 using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
@@ -11,7 +11,7 @@ namespace Fennath.Operator.Dns;
 public sealed partial class IpMonitorService(
     PublicIpResolver IpResolver,
     DnsCommandChannel Channel,
-    IOptionsMonitor<FennathConfig> OptionsMonitor,
+    IOptionsMonitor<OperatorConfig> OptionsMonitor,
     FennathMetrics Metrics,
     TimeProvider TimeProvider,
     ILogger<IpMonitorService> Logger) : BackgroundService

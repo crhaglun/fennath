@@ -130,15 +130,10 @@ public class CertificateStoreTests : IDisposable
 
     private CertificateStore CreateStore()
     {
-        var options = Options.Create(new FennathConfig
+        var options = Options.Create(new CertificateStoreOptions
         {
             Domain = "example.com",
-            Dns = new DnsConfig { Provider = "loopia", Loopia = new LoopiaConfig { Username = "u", Password = "p" } },
-            Certificates = new CertificateConfig
-            {
-                Email = "test@example.com",
-                StoragePath = _tempDir
-            }
+            StoragePath = _tempDir
         });
 
         return new CertificateStore(options, NullLogger<CertificateStore>.Instance);

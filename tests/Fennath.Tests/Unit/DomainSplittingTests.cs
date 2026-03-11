@@ -1,5 +1,5 @@
-using Fennath.Configuration;
 using Fennath.Operator.Certificates;
+using Fennath.Operator.Configuration;
 using Fennath.Operator.Dns;
 
 namespace Fennath.Tests.Unit;
@@ -11,26 +11,26 @@ namespace Fennath.Tests.Unit;
 /// </summary>
 public class DomainSplittingTests
 {
-    // -- FennathConfig.EffectiveDomain --
+    // -- OperatorConfig.EffectiveDomain --
 
     [Test]
     public async Task EffectiveDomain_WithSubdomain_CombinesSubdomainAndDomain()
     {
-        var config = new FennathConfig { Domain = "my-domain.se", Subdomain = "lab" };
+        var config = new OperatorConfig { Domain = "my-domain.se", Subdomain = "lab" };
         await Assert.That(config.EffectiveDomain).IsEqualTo("lab.my-domain.se");
     }
 
     [Test]
     public async Task EffectiveDomain_WithoutSubdomain_ReturnsDomain()
     {
-        var config = new FennathConfig { Domain = "my-domain.se" };
+        var config = new OperatorConfig { Domain = "my-domain.se" };
         await Assert.That(config.EffectiveDomain).IsEqualTo("my-domain.se");
     }
 
     [Test]
     public async Task EffectiveDomain_EmptySubdomain_ReturnsDomain()
     {
-        var config = new FennathConfig { Domain = "my-domain.se", Subdomain = "" };
+        var config = new OperatorConfig { Domain = "my-domain.se", Subdomain = "" };
         await Assert.That(config.EffectiveDomain).IsEqualTo("my-domain.se");
     }
 

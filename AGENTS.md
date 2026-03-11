@@ -33,7 +33,7 @@ fennath/
 │   ├── Dns/                  # DNS management: IP monitoring, reconciliation, Loopia provider
 │   └── Telemetry/            # OpenTelemetry setup for operator
 ├── src/Fennath.Shared/       # Shared library — types used by both containers
-│   ├── Configuration/        # Options-pattern config model (FennathConfig)
+│   ├── Configuration/        # CertificateStoreOptions (shared cert-store config)
 │   ├── Certificates/         # CertificateStore (in-memory + disk, with file-watch reload)
 │   ├── Discovery/            # IRouteDiscovery interface, DiscoveredRoute record
 │   └── Telemetry/            # FennathMetrics (custom OTel instruments)
@@ -71,7 +71,7 @@ fennath/
   command-line args, etc.).
 - Sensitive values should use environment variables (`Fennath__Dns__Loopia__Password`),
   user-secrets, or another secure provider — never hardcoded in config files.
-- Config changes are hot-reloadable via `IOptionsMonitor<FennathConfig>`.
+- Config changes are hot-reloadable via `IOptionsMonitor<T>`.
 
 ### Testing
 - Follow ADR-012 strictly: **integration tests over unit tests, behavior over implementation**.

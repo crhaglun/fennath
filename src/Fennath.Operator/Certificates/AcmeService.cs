@@ -2,7 +2,7 @@ using System.Security.Cryptography.X509Certificates;
 using Certes;
 using Certes.Acme;
 using Certes.Acme.Resource;
-using Fennath.Configuration;
+using Fennath.Operator.Configuration;
 using Fennath.Operator.Dns;
 using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
@@ -18,7 +18,7 @@ public sealed partial class AcmeService(
     IDnsProvider DnsProvider,
     DnsPropagationChecker PropagationChecker,
     Fennath.Certificates.CertificateStore CertStore,
-    IOptions<FennathConfig> Options,
+    IOptions<OperatorConfig> Options,
     FennathMetrics Metrics,
     ILogger<AcmeService> Logger)
 {
@@ -150,7 +150,7 @@ public sealed partial class AcmeService(
         }
     }
 
-    private async Task<AcmeContext> GetOrCreateAcmeContextAsync(Uri acmeServer, FennathConfig config)
+    private async Task<AcmeContext> GetOrCreateAcmeContextAsync(Uri acmeServer, OperatorConfig config)
     {
         var keyPath = Path.Combine(config.Certificates.StoragePath, "acme-account.pem");
 

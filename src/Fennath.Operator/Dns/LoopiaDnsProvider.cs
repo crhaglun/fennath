@@ -1,5 +1,5 @@
 using System.Xml.Linq;
-using Fennath.Configuration;
+using Fennath.Operator.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace Fennath.Operator.Dns;
@@ -10,7 +10,7 @@ namespace Fennath.Operator.Dns;
 /// </summary>
 public sealed partial class LoopiaDnsProvider(
     HttpClient HttpClient,
-    IOptions<FennathConfig> options,
+    IOptions<OperatorConfig> options,
     ILogger<LoopiaDnsProvider> Logger) : IDnsProvider
 {
     private const string ApiUrl = "https://api.loopia.se/RPCSERV";

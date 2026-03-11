@@ -1,6 +1,7 @@
 using Fennath.Configuration;
 using Fennath.Discovery;
 using Fennath.Operator.Dns;
+using Fennath.Proxy.Configuration;
 using Fennath.Telemetry;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Logging;
@@ -38,12 +39,13 @@ public static class FennathTestHost
                 web.ConfigureServices(services =>
                 {
                     // Configuration with valid test defaults
-                    services.AddOptions<FennathConfig>().Configure(config =>
+                    services.AddOptions<ProxyConfig>().Configure(config =>
                     {
                         config.Domain = testDomain;
-                        config.Dns.Loopia.Username = "test";
-                        config.Dns.Loopia.Password = "test";
-                        config.Certificates.Email = "test@example.com";
+                    });
+                    services.AddOptions<CertificateStoreOptions>().Configure(opts =>
+                    {
+                        opts.Domain = testDomain;
                     });
 
                     // YARP reverse proxy — test uses InMemoryConfigProvider

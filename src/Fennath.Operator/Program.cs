@@ -1,8 +1,8 @@
 using Fennath.Certificates;
 using Fennath.Configuration;
 using Fennath.Discovery;
-using Fennath.Operator;
 using Fennath.Operator.Certificates;
+using Fennath.Operator.Configuration;
 using Fennath.Operator.Discovery;
 using Fennath.Operator.Dns;
 using Fennath.Operator.Telemetry;
@@ -13,10 +13,19 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
 
 builder.Services
-    .AddOptions<FennathConfig>()
-    .BindConfiguration(FennathConfig.SectionName)
+    .AddOptions<OperatorConfig>()
+    .BindConfiguration(OperatorConfig.SectionName)
     .ValidateOnStart();
-builder.Services.AddSingleton<IValidateOptions<FennathConfig>, OperatorConfigValidator>();
+builder.Services.AddSingleton<IValidateOptions<OperatorConfig>, ValidateOperatorConfig>();
+
+builder.Services
+    .AddOptions<CertificateStoreOptions>()
+    .Configure<IOptions<OperatorConfig>>((store, op) =>
+    {
+        store.Domain = op.Value.Domain;
+        store.Subdomain = op.Value.Subdomain;
+        store.StoragePath = op.Value.Certificates.StoragePath;
+    });
 
 // Telemetry
 builder.Services.AddOperatorTelemetry();
@@ -46,7 +55,7 @@ builder.Services.AddHostedService<CertificateRenewalService>();
 
 var host = builder.Build();
 
-var config = host.Services.GetRequiredService<IOptions<FennathConfig>>().Value;
+var config = host.Services.GetRequiredService<IOptions<OperatorConfig>>().Value;
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
 
 Log.Starting(logger, config.EffectiveDomain);

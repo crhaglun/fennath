@@ -1,7 +1,7 @@
 using System.Net;
 using DnsClient;
 using DnsClient.Protocol;
-using Fennath.Configuration;
+using Fennath.Operator.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace Fennath.Operator.Certificates;
@@ -12,7 +12,7 @@ namespace Fennath.Operator.Certificates;
 /// by Let's Encrypt resolvers seeing stale cached values.
 /// </summary>
 public sealed partial class DnsPropagationChecker(
-    IOptionsMonitor<FennathConfig> OptionsMonitor,
+    IOptionsMonitor<OperatorConfig> OptionsMonitor,
     ILogger<DnsPropagationChecker> Logger)
 {
     /// <summary>

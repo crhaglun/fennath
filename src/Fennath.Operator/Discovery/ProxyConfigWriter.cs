@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Fennath.Configuration;
+using Fennath.Operator.Configuration;
 using Fennath.Core;
 using Fennath.Discovery;
 using Fennath.Operator.Dns;
@@ -19,7 +19,7 @@ namespace Fennath.Operator.Discovery;
 public sealed partial class ProxyConfigWriter(
     IEnumerable<IRouteDiscovery> sources,
     DnsCommandChannel dnsChannel,
-    IOptions<FennathConfig> config,
+    IOptions<OperatorConfig> config,
     ILogger<ProxyConfigWriter> logger) : IHostedService, IDisposable
 {
     private readonly IReadOnlyList<IRouteDiscovery> _sources = sources.ToList();

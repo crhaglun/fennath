@@ -1,48 +1,39 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
 
-namespace Fennath.Configuration;
+namespace Fennath.Operator.Configuration;
 
 /// <summary>
-/// Root configuration model, bound from the "Fennath" configuration section.
-/// Used by both proxy and operator containers — each validates the subset it needs.
+/// Configuration for the operator container. Bound from the "Fennath" section.
+/// Only declares fields the operator needs — server/port config belongs to the proxy.
 /// </summary>
-public sealed class FennathConfig
+public sealed class OperatorConfig
 {
     public const string SectionName = "Fennath";
 
-    /// <summary>
-    /// The registered domain at your registrar (e.g., "my-domain-name.se").
-    /// </summary>
     [Required]
     public string Domain { get; set; } = "";
 
-    /// <summary>
-    /// Optional subdomain prefix that scopes all Fennath services (e.g., "lab").
-    /// When set, services are exposed under {service}.{Subdomain}.{Domain}.
-    /// When empty, services are exposed directly under {service}.{Domain}.
-    /// </summary>
     public string Subdomain { get; set; } = "";
 
-    /// <summary>
-    /// The full domain used for routing and certificates.
-    /// Combines Subdomain and Domain (e.g., "lab.my-domain-name.se" or just "my-domain-name.se").
-    /// </summary>
     public string EffectiveDomain =>
         string.IsNullOrEmpty(Subdomain) ? Domain : $"{Subdomain}.{Domain}";
 
+    [ValidateObjectMembers]
     public DnsConfig Dns { get; set; } = new();
 
+    [ValidateObjectMembers]
     public CertificateConfig Certificates { get; set; } = new();
 
+    [ValidateObjectMembers]
     public DockerConfig Docker { get; set; } = new();
-
-    public ServerConfig Server { get; set; } = new();
 }
 
 public sealed class DnsConfig
 {
     public string Provider { get; set; } = "loopia";
 
+    [ValidateObjectMembers]
     public LoopiaConfig Loopia { get; set; } = new();
 
     [Range(1, int.MaxValue)]
@@ -79,26 +70,15 @@ public sealed class CertificateConfig
     [Range(1, 365)]
     public int RenewalThresholdDays { get; set; } = 30;
 
-    /// <summary>
-    /// Maximum time (seconds) to wait for the ACME challenge TXT record to become
-    /// visible at public DNS resolvers before giving up.
-    /// </summary>
     [Range(1, int.MaxValue)]
     public int DnsPropagationTimeoutSeconds { get; set; } = 86400;
 
-    /// <summary>
-    /// How often (seconds) to query public resolvers while waiting for propagation.
-    /// </summary>
     [Range(1, int.MaxValue)]
     public int DnsPropagationPollingIntervalSeconds { get; set; } = 60;
 
     [Range(1, int.MaxValue)]
     public int ChallengePollingIntervalSeconds { get; set; } = 120;
 
-    /// <summary>
-    /// Public DNS resolvers used to verify TXT record propagation before
-    /// triggering ACME validation. Default: Google and Cloudflare public DNS.
-    /// </summary>
     public List<string> DnsResolvers { get; set; } =
     [
         "8.8.8.8",
@@ -114,19 +94,5 @@ public sealed class DockerConfig
     public int PollIntervalSeconds { get; set; } = 15;
 }
 
-public sealed class ServerConfig
-{
-    [Range(1, 65535)]
-    public int HttpsPort { get; set; } = 443;
-
-    [Range(1, 65535)]
-    public int HttpPort { get; set; } = 80;
-
-    /// <summary>
-    /// The external-facing HTTPS port for redirect URLs. When the container listens
-    /// on a non-standard port (e.g. 8443) behind port-forwarding, this ensures
-    /// HTTP→HTTPS redirects point to the correct external port.
-    /// </summary>
-    [Range(1, 65535)]
-    public int ExternalHttpsPort { get; set; } = 443;
-}
+[OptionsValidator]
+internal partial class ValidateOperatorConfig : IValidateOptions<OperatorConfig>;

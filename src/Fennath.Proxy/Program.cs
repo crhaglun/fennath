@@ -2,6 +2,7 @@ using Fennath.Certificates;
 using Fennath.Configuration;
 using Fennath.Core;
 using Fennath.Proxy;
+using Fennath.Proxy.Configuration;
 using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
@@ -14,15 +15,24 @@ builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, relo
 builder.Configuration.AddJsonFile(SharedPaths.YarpConfigPath, optional: true, reloadOnChange: true);
 
 builder.Services
-    .AddOptions<FennathConfig>()
-    .BindConfiguration(FennathConfig.SectionName)
+    .AddOptions<ProxyConfig>()
+    .BindConfiguration(ProxyConfig.SectionName)
     .ValidateOnStart();
-builder.Services.AddSingleton<IValidateOptions<FennathConfig>, ProxyConfigValidator>();
+builder.Services.AddSingleton<IValidateOptions<ProxyConfig>, ValidateProxyConfig>();
+
+builder.Services
+    .AddOptions<CertificateStoreOptions>()
+    .Configure<IOptions<ProxyConfig>>((store, proxy) =>
+    {
+        store.Domain = proxy.Value.Domain;
+        store.Subdomain = proxy.Value.Subdomain;
+        store.StoragePath = proxy.Value.Certificates.StoragePath;
+    });
 
 builder.Services.AddOptions<Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionOptions>()
-    .Configure<IOptions<FennathConfig>>((httpsOptions, fennathConfig) =>
+    .Configure<IOptions<ProxyConfig>>((httpsOptions, proxyConfig) =>
     {
-        httpsOptions.HttpsPort = fennathConfig.Value.Server.ExternalHttpsPort;
+        httpsOptions.HttpsPort = proxyConfig.Value.Server.ExternalHttpsPort;
     });
 
 // Graceful shutdown — allow in-flight requests to drain before terminating
@@ -36,7 +46,7 @@ builder.Services.AddHealthChecks()
 // Configure Kestrel TLS with dynamic certificate selection
 builder.WebHost.ConfigureKestrel((_, serverOptions) =>
 {
-    var config = serverOptions.ApplicationServices.GetRequiredService<IOptions<FennathConfig>>().Value;
+    var config = serverOptions.ApplicationServices.GetRequiredService<IOptions<ProxyConfig>>().Value;
 
     serverOptions.ListenAnyIP(config.Server.HttpsPort, listenOptions =>
     {
@@ -52,7 +62,7 @@ builder.WebHost.ConfigureKestrel((_, serverOptions) =>
 
 var app = builder.Build();
 
-var config = app.Services.GetRequiredService<IOptions<FennathConfig>>().Value;
+var config = app.Services.GetRequiredService<IOptions<ProxyConfig>>().Value;
 
 // HTTP → HTTPS redirect (when enabled in config)
 app.UseHttpsRedirection();

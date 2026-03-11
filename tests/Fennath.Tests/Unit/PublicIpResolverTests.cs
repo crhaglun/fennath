@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text;
-using Fennath.Configuration;
+using Fennath.Operator.Configuration;
 using Fennath.Operator.Dns;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -83,7 +83,7 @@ public class PublicIpResolverTests
 
     private static PublicIpResolver CreateResolver(HttpMessageHandler handler)
     {
-        var config = new FennathConfig
+        var config = new OperatorConfig
         {
             Domain = "example.com",
             Dns = new DnsConfig

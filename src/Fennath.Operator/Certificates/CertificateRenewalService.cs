@@ -1,4 +1,4 @@
-using Fennath.Configuration;
+using Fennath.Operator.Configuration;
 using Fennath.Telemetry;
 using Microsoft.Extensions.Options;
 
@@ -11,7 +11,7 @@ namespace Fennath.Operator.Certificates;
 public sealed partial class CertificateRenewalService(
     AcmeService AcmeService,
     Fennath.Certificates.CertificateStore CertStore,
-    IOptionsMonitor<FennathConfig> OptionsMonitor,
+    IOptionsMonitor<OperatorConfig> OptionsMonitor,
     FennathMetrics Metrics,
     TimeProvider TimeProvider,
     ILogger<CertificateRenewalService> Logger) : BackgroundService

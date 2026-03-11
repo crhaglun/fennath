@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text;
-using Fennath.Configuration;
+using Fennath.Operator.Configuration;
 using Fennath.Operator.Dns;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -9,7 +9,7 @@ namespace Fennath.Tests.Unit;
 
 public class LoopiaDnsProviderTests
 {
-    private static FennathConfig CreateConfig(string domain = "example.com") => new()
+    private static OperatorConfig CreateConfig(string domain = "example.com") => new()
     {
         Domain = domain,
         Dns = new DnsConfig

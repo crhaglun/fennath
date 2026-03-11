@@ -1,5 +1,5 @@
 using System.Net;
-using Fennath.Configuration;
+using Fennath.Operator.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace Fennath.Operator.Dns;
@@ -10,7 +10,7 @@ namespace Fennath.Operator.Dns;
 /// </summary>
 public sealed partial class PublicIpResolver(
     HttpClient HttpClient,
-    IOptions<FennathConfig> options,
+    IOptions<OperatorConfig> options,
     ILogger<PublicIpResolver> Logger)
 {
     private readonly IReadOnlyList<string> EchoServices = options.Value.Dns.IpEchoServices;

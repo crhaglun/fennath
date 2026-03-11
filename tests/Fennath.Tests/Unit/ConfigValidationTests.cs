@@ -1,5 +1,5 @@
-using Fennath.Configuration;
-using Fennath.Operator;
+using Fennath.Operator.Configuration;
+using Fennath.Proxy.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -9,9 +9,9 @@ namespace Fennath.Tests.Unit;
 public class ConfigValidationTests
 {
     [Test]
-    public async Task Valid_config_passes_validation()
+    public async Task Valid_operator_config_passes_validation()
     {
-        var host = CreateHostWithConfig(config =>
+        var host = CreateOperatorHost(config =>
         {
             config.Domain = "example.com";
             config.Dns.Loopia.Username = "user@loopiaapi";
@@ -19,28 +19,23 @@ public class ConfigValidationTests
             config.Certificates.Email = "admin@example.com";
         });
 
-        var options = host.Services.GetRequiredService<IOptions<FennathConfig>>();
-        var value = options.Value;
-        await Assert.That(value.Domain).IsEqualTo("example.com");
+        var options = host.Services.GetRequiredService<IOptions<OperatorConfig>>();
+        await Assert.That(options.Value.Domain).IsEqualTo("example.com");
     }
-    [Test]
-    public async Task Missing_domain_fails_validation()
-    {
-        var host = CreateHostWithConfig(config =>
-        {
-            config.Dns.Loopia.Username = "user@loopiaapi";
-            config.Dns.Loopia.Password = "secret";
-            config.Certificates.Email = "admin@example.com";
-        });
 
-        var options = host.Services.GetRequiredService<IOptions<FennathConfig>>();
+    [Test]
+    public async Task Missing_domain_fails_proxy_validation()
+    {
+        var host = CreateProxyHost(config => { config.Domain = ""; });
+
+        var options = host.Services.GetRequiredService<IOptions<ProxyConfig>>();
         await Assert.That(() => _ = options.Value).Throws<OptionsValidationException>();
     }
 
     [Test]
-    public async Task Empty_loopia_username_fails_validation()
+    public async Task Empty_loopia_username_fails_operator_validation()
     {
-        var host = CreateHostWithConfig(config =>
+        var host = CreateOperatorHost(config =>
         {
             config.Domain = "example.com";
             config.Dns.Loopia.Username = "";
@@ -48,14 +43,14 @@ public class ConfigValidationTests
             config.Certificates.Email = "admin@example.com";
         });
 
-        var options = host.Services.GetRequiredService<IOptions<FennathConfig>>();
+        var options = host.Services.GetRequiredService<IOptions<OperatorConfig>>();
         await Assert.That(() => _ = options.Value).Throws<OptionsValidationException>();
     }
 
     [Test]
-    public async Task Empty_loopia_password_fails_validation()
+    public async Task Empty_loopia_password_fails_operator_validation()
     {
-        var host = CreateHostWithConfig(config =>
+        var host = CreateOperatorHost(config =>
         {
             config.Domain = "example.com";
             config.Dns.Loopia.Username = "user@loopiaapi";
@@ -63,14 +58,14 @@ public class ConfigValidationTests
             config.Certificates.Email = "admin@example.com";
         });
 
-        var options = host.Services.GetRequiredService<IOptions<FennathConfig>>();
+        var options = host.Services.GetRequiredService<IOptions<OperatorConfig>>();
         await Assert.That(() => _ = options.Value).Throws<OptionsValidationException>();
     }
 
     [Test]
-    public async Task Empty_certificate_email_fails_validation()
+    public async Task Empty_certificate_email_fails_operator_validation()
     {
-        var host = CreateHostWithConfig(config =>
+        var host = CreateOperatorHost(config =>
         {
             config.Domain = "example.com";
             config.Dns.Loopia.Username = "user@loopiaapi";
@@ -78,14 +73,14 @@ public class ConfigValidationTests
             config.Certificates.Email = "";
         });
 
-        var options = host.Services.GetRequiredService<IOptions<FennathConfig>>();
+        var options = host.Services.GetRequiredService<IOptions<OperatorConfig>>();
         await Assert.That(() => _ = options.Value).Throws<OptionsValidationException>();
     }
 
     [Test]
-    public async Task Zero_ip_check_interval_fails_validation()
+    public async Task Zero_ip_check_interval_fails_operator_validation()
     {
-        var host = CreateHostWithConfig(config =>
+        var host = CreateOperatorHost(config =>
         {
             config.Domain = "example.com";
             config.Dns.Loopia.Username = "user@loopiaapi";
@@ -94,14 +89,14 @@ public class ConfigValidationTests
             config.Certificates.Email = "admin@example.com";
         });
 
-        var options = host.Services.GetRequiredService<IOptions<FennathConfig>>();
+        var options = host.Services.GetRequiredService<IOptions<OperatorConfig>>();
         await Assert.That(() => _ = options.Value).Throws<OptionsValidationException>();
     }
 
     [Test]
-    public async Task Negative_renewal_check_interval_fails_validation()
+    public async Task Negative_renewal_check_interval_fails_operator_validation()
     {
-        var host = CreateHostWithConfig(config =>
+        var host = CreateOperatorHost(config =>
         {
             config.Domain = "example.com";
             config.Dns.Loopia.Username = "user@loopiaapi";
@@ -110,14 +105,14 @@ public class ConfigValidationTests
             config.Certificates.RenewalCheckIntervalSeconds = -1;
         });
 
-        var options = host.Services.GetRequiredService<IOptions<FennathConfig>>();
+        var options = host.Services.GetRequiredService<IOptions<OperatorConfig>>();
         await Assert.That(() => _ = options.Value).Throws<OptionsValidationException>();
     }
 
     [Test]
     public async Task Zero_docker_poll_interval_fails_operator_validation()
     {
-        var host = CreateHostWithConfig(config =>
+        var host = CreateOperatorHost(config =>
         {
             config.Domain = "example.com";
             config.Dns.Loopia.Username = "user@loopiaapi";
@@ -126,39 +121,55 @@ public class ConfigValidationTests
             config.Docker.PollIntervalSeconds = 0;
         });
 
-        var options = host.Services.GetRequiredService<IOptions<FennathConfig>>();
+        var options = host.Services.GetRequiredService<IOptions<OperatorConfig>>();
         await Assert.That(() => _ = options.Value).Throws<OptionsValidationException>();
     }
 
     [Test]
     public async Task Port_zero_fails_proxy_validation()
     {
-        var host = CreateHostWithConfig(config =>
+        var host = CreateProxyHost(config =>
         {
             config.Domain = "example.com";
             config.Server.HttpsPort = 0;
-        }, useProxyValidator: true);
+        });
 
-        var options = host.Services.GetRequiredService<IOptions<FennathConfig>>();
+        var options = host.Services.GetRequiredService<IOptions<ProxyConfig>>();
         await Assert.That(() => _ = options.Value).Throws<OptionsValidationException>();
     }
 
-    private static IHost CreateHostWithConfig(Action<FennathConfig> configure, bool useProxyValidator = false)
+    [Test]
+    public async Task Proxy_does_not_require_dns_credentials()
+    {
+        var host = CreateProxyHost(config =>
+        {
+            config.Domain = "example.com";
+        });
+
+        var options = host.Services.GetRequiredService<IOptions<ProxyConfig>>();
+        await Assert.That(options.Value.Domain).IsEqualTo("example.com");
+    }
+
+    private static IHost CreateOperatorHost(Action<OperatorConfig> configure)
     {
         return Host.CreateDefaultBuilder()
             .ConfigureServices(services =>
             {
-                services.AddOptions<FennathConfig>()
+                services.AddOptions<OperatorConfig>()
                     .Configure(configure);
+                services.AddSingleton<IValidateOptions<OperatorConfig>, ValidateOperatorConfig>();
+            })
+            .Build();
+    }
 
-                if (useProxyValidator)
-                {
-                    services.AddSingleton<IValidateOptions<FennathConfig>, Fennath.Proxy.ProxyConfigValidator>();
-                }
-                else
-                {
-                    services.AddSingleton<IValidateOptions<FennathConfig>, OperatorConfigValidator>();
-                }
+    private static IHost CreateProxyHost(Action<ProxyConfig> configure)
+    {
+        return Host.CreateDefaultBuilder()
+            .ConfigureServices(services =>
+            {
+                services.AddOptions<ProxyConfig>()
+                    .Configure(configure);
+                services.AddSingleton<IValidateOptions<ProxyConfig>, ValidateProxyConfig>();
             })
             .Build();
     }

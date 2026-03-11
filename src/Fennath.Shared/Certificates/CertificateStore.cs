@@ -28,10 +28,10 @@ public sealed partial class CertificateStore : IDisposable
     private X509Certificate2 _certificate;
     private bool _isPlaceholder;
 
-    public CertificateStore(IOptions<FennathConfig> options, ILogger<CertificateStore> logger)
+    public CertificateStore(IOptions<CertificateStoreOptions> options, ILogger<CertificateStore> logger)
     {
-        _storagePath = options.Value.Certificates.StoragePath;
-        _wildcardHost = $"*.{options.Value.Domain}";
+        _storagePath = options.Value.StoragePath;
+        _wildcardHost = $"*.{options.Value.EffectiveDomain}";
         _logger = logger;
 
         Directory.CreateDirectory(_storagePath);
