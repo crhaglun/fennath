@@ -47,22 +47,20 @@ public sealed partial class LoopiaDnsProvider(
     public async Task UpsertARecordAsync(string subdomain, string ipAddress, int ttl = 300, CancellationToken ct = default)
     {
         var registrarSub = ToRegistrarSubdomain(subdomain, Prefix);
-
-        // Remove any existing A records to avoid duplicates pointing to stale IPs
         var existing = await GetZoneRecordsAsync(registrarSub, ct);
-        var aRecords = existing.Where(r => r.Type == "A").ToList();
+        var aRecord = existing.FirstOrDefault(r => r.Type == "A");
 
-        foreach (var stale in aRecords)
+        if (aRecord is not null)
         {
-            await RemoveZoneRecordAsync(registrarSub, stale.RecordId, ct);
+            // Update the existing A record in place
+            await UpdateZoneRecordAsync(registrarSub, aRecord.RecordId, "A", ipAddress, ttl, 0, ct);
         }
-
-        if (aRecords.Count == 0)
+        else
         {
             await EnsureSubdomainAsync(registrarSub, ct);
+            await AddZoneRecordAsync(registrarSub, "A", ipAddress, ttl, 0, ct);
         }
 
-        await AddZoneRecordAsync(registrarSub, "A", ipAddress, ttl, 0, ct);
         LogARecordUpdated(Logger, subdomain, ipAddress);
     }
 
@@ -139,6 +137,34 @@ public sealed partial class LoopiaDnsProvider(
             LogXmlRpcResponseBody(Logger, "addZoneRecord", response.ToString());
             throw new InvalidOperationException(
                 $"addZoneRecord failed for '{subdomain}' (domain='{Domain}', {type} {rdata}): {status}");
+        }
+    }
+
+    private async Task UpdateZoneRecordAsync(
+        string subdomain, int recordId, string type, string rdata, int ttl, int priority, CancellationToken ct)
+    {
+        var recordStruct = XmlRpcStruct(
+            ("type", XmlRpcString(type)),
+            ("ttl", XmlRpcInt(ttl)),
+            ("priority", XmlRpcInt(priority)),
+            ("rdata", XmlRpcString(rdata)),
+            ("record_id", XmlRpcInt(recordId)));
+
+        LogXmlRpcParams(Logger, "updateZoneRecord", Domain, subdomain);
+        var response = await CallAsync("updateZoneRecord", [
+            XmlRpcString(Username),
+            XmlRpcString(Password),
+            XmlRpcString(Domain),
+            XmlRpcString(subdomain),
+            recordStruct,
+        ], ct);
+
+        var status = ParseStringResponse(response);
+        if (status != "OK")
+        {
+            LogXmlRpcResponseBody(Logger, "updateZoneRecord", response.ToString());
+            throw new InvalidOperationException(
+                $"updateZoneRecord failed for '{subdomain}' (domain='{Domain}', {type} {rdata}): {status}");
         }
     }
 
