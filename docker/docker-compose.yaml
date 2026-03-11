@@ -5,8 +5,8 @@ services:
   fennath:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
-    container_name: fennath
+      dockerfile: docker/Dockerfile.proxy
+    container_name: fennath-proxy
     restart: unless-stopped
     read_only: true
     security_opt:
