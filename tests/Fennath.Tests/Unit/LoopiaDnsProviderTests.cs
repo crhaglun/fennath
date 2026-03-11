@@ -82,33 +82,6 @@ public class LoopiaDnsProviderTests
     }
 
     [Test]
-    public async Task UpsertARecord_skips_update_when_ip_already_matches()
-    {
-        var existingRecord = """
-            <array><data>
-              <value><struct>
-                <member><name>type</name><value><string>A</string></value></member>
-                <member><name>ttl</name><value><int>300</int></value></member>
-                <member><name>priority</name><value><int>0</int></value></member>
-                <member><name>rdata</name><value><string>5.6.7.8</string></value></member>
-                <member><name>record_id</name><value><int>99</int></value></member>
-              </struct></value>
-            </data></array>
-            """;
-
-        var handler = new SequentialHandler([
-            CreateXmlRpcResponse(existingRecord),
-        ]);
-
-        var provider = CreateProvider(handler);
-
-        await provider.UpsertARecordAsync("www", "5.6.7.8");
-
-        // Should only call getZoneRecords, not addZoneRecord
-        await Assert.That(handler.CallCount).IsEqualTo(1);
-    }
-
-    [Test]
     public async Task CreateTxtRecord_calls_addSubdomain_then_addZoneRecord()
     {
         var handler = new SequentialHandler([

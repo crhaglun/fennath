@@ -47,27 +47,18 @@ public sealed partial class LoopiaDnsProvider(
     public async Task UpsertARecordAsync(string subdomain, string ipAddress, int ttl = 300, CancellationToken ct = default)
     {
         var registrarSub = ToRegistrarSubdomain(subdomain, Prefix);
+
+        // Remove any existing A records to avoid duplicates pointing to stale IPs
         var existing = await GetZoneRecordsAsync(registrarSub, ct);
         var aRecords = existing.Where(r => r.Type == "A").ToList();
 
-        if (aRecords.Count > 0)
+        foreach (var stale in aRecords)
         {
-            var match = aRecords.FirstOrDefault(r => r.Rdata == ipAddress);
-            if (match is not null)
-            {
-                LogARecordAlreadyCurrent(Logger, subdomain, ipAddress);
-                return;
-            }
-
-            // Remove stale A records, then add the new one
-            foreach (var stale in aRecords)
-            {
-                await RemoveZoneRecordAsync(registrarSub, stale.RecordId, ct);
-            }
+            await RemoveZoneRecordAsync(registrarSub, stale.RecordId, ct);
         }
-        else
+
+        if (aRecords.Count == 0)
         {
-            // Ensure subdomain exists
             await EnsureSubdomainAsync(registrarSub, ct);
         }
 
@@ -295,9 +286,6 @@ public sealed partial class LoopiaDnsProvider(
     }
 
     // -- Logging --
-
-    [LoggerMessage(EventId = 1010, Level = LogLevel.Information, Message = "A record for '{subdomain}' already points to {ipAddress}")]
-    private static partial void LogARecordAlreadyCurrent(ILogger logger, string subdomain, string ipAddress);
 
     [LoggerMessage(EventId = 1011, Level = LogLevel.Information, Message = "Updated A record for '{subdomain}' to {ipAddress}")]
     private static partial void LogARecordUpdated(ILogger logger, string subdomain, string ipAddress);
