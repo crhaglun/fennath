@@ -1,9 +1,10 @@
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Fennath.Operator.Configuration;
 using Fennath.Discovery;
 using Fennath.Operator.Dns;
 using Microsoft.Extensions.Options;
+using Yarp.ReverseProxy.Configuration;
 
 namespace Fennath.Operator.Discovery;
 
@@ -56,6 +57,12 @@ public sealed partial class ProxyConfigWriter(
         }
     }
 
+    private static readonly JsonSerializerOptions SerializerOptions = new()
+    {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     private void WriteConfig()
     {
         try
@@ -73,8 +80,10 @@ public sealed partial class ProxyConfigWriter(
                 }
             }
 
-            var yarpConfig = BuildYarpConfig(merged, _domain);
-            var json = yarpConfig.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+            var (routes, clusters) = BuildYarpConfig(merged, _domain);
+            var json = JsonSerializer.Serialize(
+                new { ReverseProxy = new { Routes = routes, Clusters = clusters } },
+                SerializerOptions);
 
             var directory = Path.GetDirectoryName(_configPath);
             if (directory is not null)
@@ -95,12 +104,13 @@ public sealed partial class ProxyConfigWriter(
     }
 
     /// <summary>
-    /// Builds a YARP-format JSON object from discovered routes.
+    /// Builds typed YARP route and cluster dictionaries from discovered routes.
     /// </summary>
-    internal static JsonObject BuildYarpConfig(List<DiscoveredRoute> routes, string domain)
+    internal static (Dictionary<string, RouteConfig> Routes, Dictionary<string, ClusterConfig> Clusters)
+        BuildYarpConfig(List<DiscoveredRoute> routes, string domain)
     {
-        var routesObj = new JsonObject();
-        var clustersObj = new JsonObject();
+        var routesDict = new Dictionary<string, RouteConfig>();
+        var clustersDict = new Dictionary<string, ClusterConfig>();
 
         foreach (var route in routes)
         {
@@ -108,35 +118,24 @@ public sealed partial class ProxyConfigWriter(
             var clusterId = $"cluster-{route.Subdomain}";
             var host = route.IsApex ? domain : $"{route.Subdomain}.{domain}";
 
-            routesObj[routeId] = new JsonObject
+            routesDict[routeId] = new RouteConfig
             {
-                ["ClusterId"] = clusterId,
-                ["Match"] = new JsonObject
-                {
-                    ["Hosts"] = new JsonArray(host)
-                }
+                RouteId = routeId,
+                ClusterId = clusterId,
+                Match = new RouteMatch { Hosts = [host] }
             };
 
-            clustersObj[clusterId] = new JsonObject
+            clustersDict[clusterId] = new ClusterConfig
             {
-                ["Destinations"] = new JsonObject
+                ClusterId = clusterId,
+                Destinations = new Dictionary<string, DestinationConfig>
                 {
-                    ["default"] = new JsonObject
-                    {
-                        ["Address"] = route.BackendUrl
-                    }
+                    ["default"] = new DestinationConfig { Address = route.BackendUrl }
                 }
             };
         }
 
-        return new JsonObject
-        {
-            ["ReverseProxy"] = new JsonObject
-            {
-                ["Routes"] = routesObj,
-                ["Clusters"] = clustersObj
-            }
-        };
+        return (routesDict, clustersDict);
     }
 
     /// <summary>
