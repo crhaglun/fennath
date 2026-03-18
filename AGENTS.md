@@ -6,8 +6,7 @@ contributing to this project. It should be updated as the project matures.
 ## Project Overview
 
 Fennath is a TLS-terminating reverse proxy for homelab use, built with .NET 10 and YARP.
-See [README.md](README.md) for a human-oriented overview and
-[docs/implementation-plan.md](docs/implementation-plan.md) for the full build plan.
+See [README.md](README.md) for a human-oriented overview.
 
 ## Key Documents
 
@@ -27,7 +26,7 @@ fennath/
 ├── src/Fennath.Proxy/         # Proxy container — YARP routing, TLS termination (no Docker socket)
 │   ├── Proxy/                # YARP setup, config validator, cert file watcher
 │   └── Telemetry/            # OpenTelemetry setup and proxy metrics middleware
-├── src/Fennath.Operator/      # Operator container — Docker discovery, DNS, Docker discovery, DNS, ACME certs
+├── src/Fennath.Operator/      # Operator container — Docker discovery, DNS, ACME certs
 │   ├── Discovery/            # Docker route discovery, proxy config writer (YARP JSON)
 │   ├── Certificates/         # ACME/Let's Encrypt cert management
 │   ├── Dns/                  # DNS management: IP monitoring, reconciliation, Loopia provider
@@ -40,7 +39,7 @@ fennath/
 ├── tests/Fennath.Tests/      # Unit and integration tests
 ├── docs/                     # Design documents and ADRs
 ├── docker/
-│   ├── Dockerfile                # Proxy container build
+│   ├── Dockerfile.proxy            # Proxy container build
 │   ├── Dockerfile.operator        # Operator container build
 │   └── docker-compose.yaml       # Deployment descriptor (both containers)
 ```
@@ -110,7 +109,7 @@ dotnet test
 dotnet format
 
 # Docker build (proxy)
-docker build -t fennath -f docker/Dockerfile .
+docker build -t fennath -f docker/Dockerfile.proxy .
 
 # Docker build (operator)
 docker build -t fennath-operator -f docker/Dockerfile.operator .
@@ -120,7 +119,7 @@ docker compose -f docker/docker-compose.yaml up -d
 ```
 
 ### Dependencies
-- **YARP** (`Yarp.ReverseProxy`) — reverse proxy engine
+- **YARP** (`Yarp.ReverseProxy`) — reverse proxy engine (Proxy uses it for routing; Operator uses its config types for type-safe JSON serialization)
 - **Certes** — ACME v2 client for Let's Encrypt (targets .NET Standard 2.0; see ADR-002)
 - **DnsClient** (`DnsClient.NET`) — DNS queries for ACME challenge propagation verification
 - **OpenTelemetry .NET SDK** — traces, metrics, logs export (see ADR-006)
@@ -135,13 +134,13 @@ This project uses **Central Package Management** (`Directory.Packages.props`).
 
 ```bash
 # Add a package to a project (automatically updates Directory.Packages.props)
-dotnet add src/Fennath package SomePackage
+dotnet add src/Fennath.Proxy package SomePackage
 
 # Add a package to the test project
 dotnet add tests/Fennath.Tests package SomeTestPackage
 
 # Update a package version
-dotnet add src/Fennath package SomePackage --version 2.0.0
+dotnet add src/Fennath.Proxy package SomePackage --version 2.0.0
 
 # List outdated packages
 dotnet list package --outdated

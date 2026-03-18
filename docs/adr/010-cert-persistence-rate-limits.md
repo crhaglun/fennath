@@ -71,7 +71,6 @@ when staging mode is active.
 - Development workflow is safe: staging mode + persistence means you can restart hundreds
   of times without hitting any limits.
 - Certificates survive container recreation (Docker volume mount).
-- `metadata.json` provides a quick way to check certificate status without parsing PFX files.
 
 **Negative:**
 - PFX files contain private keys — the storage directory must have restrictive permissions
@@ -80,3 +79,14 @@ when staging mode is active.
   triggered. This is by design — it's the recovery path.
 - Persisted certificates from staging mode will not work if you switch to production mode
   (different CA). Fennath should detect this mismatch and re-request.
+
+## Current Limitations
+
+The following aspects of this ADR are not yet implemented:
+
+- **`metadata.json`** is not written. Certificate expiry is tracked in-memory from the
+  loaded PFX file. This is planned as a future convenience feature.
+- **File permission enforcement** on the cert storage directory is not performed on startup.
+  The current implementation relies on container/OS defaults.
+- **Per-subdomain override certificates** (e.g., `api.example.com.pfx`) are not supported.
+  Only the wildcard certificate is stored and loaded.

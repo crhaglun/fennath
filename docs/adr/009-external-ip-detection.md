@@ -37,9 +37,9 @@ over HTTP. This is the same approach used by virtually all DynDNS clients.
 ### Implementation
 
 - **Poll interval:** Configurable via `dns.publicIpCheckIntervalSeconds` (default: 300 seconds).
-- **Multiple services for resilience:** Query at least two services and require agreement
-  before accepting a result. If services disagree or all fail, retain the last known IP
-  and log a warning.
+- **First-success with fallback:** Query services in order until one returns a valid IP address.
+  If a service fails or returns non-IP content, try the next. If all services fail, throw an
+  `AggregateException` so the caller can retain the last known IP and retry later.
 
   Default service list:
   ```

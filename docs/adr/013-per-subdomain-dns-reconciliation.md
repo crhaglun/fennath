@@ -50,3 +50,13 @@ The root (`@`) A record is always managed alongside per-subdomain records.
 
 **Supersedes:** The wildcard DNS aspect of the previous DnsUpdateService implementation.
 ADR-004 (Loopia as DNS provider) remains valid — only the record management strategy changed.
+
+## Current Limitations
+
+The following aspects of this ADR are not yet implemented:
+
+- **24-hour periodic reconciliation** (the "slow path") does not exist. Only the event-driven
+  fast path is implemented — the service responds to `IpChanged` and `SubdomainAdded` commands.
+- **Stale record cleanup** is not automated. DNS records for removed containers are never
+  deleted; cleanup is a manual operation. This is conservative by design to avoid DNS outages
+  during temporary container restarts.

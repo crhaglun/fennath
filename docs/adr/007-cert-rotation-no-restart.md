@@ -47,8 +47,8 @@ The implementation pattern:
 
 **Positive:**
 - Zero downtime during certificate renewal — no connection drops, no restart needed.
-- `ServerCertificateSelector` also enables per-subdomain certificate overrides naturally
-  (different cert for different SNI hostname).
+- The `ServerCertificateSelector` architecture will enable per-subdomain certificate overrides
+  in the future (different cert for different SNI hostname) without structural changes.
 - Simple implementation — no file watchers or external tools needed.
 
 **Negative:**
@@ -60,3 +60,9 @@ The implementation pattern:
 - `X509Certificate2` objects hold unmanaged resources. Old certificates must be properly
   disposed after swap. We'll use a brief delay before disposing to avoid racing with
   in-flight handshakes.
+
+## Current Limitations
+
+- **Per-subdomain certificate overrides** are not yet implemented. The in-memory store
+  currently holds only a single wildcard certificate. The `ServerCertificateSelector`
+  architecture supports this as a future capability without structural changes.
