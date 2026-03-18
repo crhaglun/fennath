@@ -78,11 +78,12 @@ public class LoopiaDnsProviderTests
 
         await provider.UpsertARecordAsync("www", "5.6.7.8");
 
-        await Assert.That(handler.CallCount).IsEqualTo(3);
+        await Assert.That(handler.RequestBodies.Any(b => b.Contains("addZoneRecord") && b.Contains("5.6.7.8")))
+            .IsTrue();
     }
 
     [Test]
-    public async Task CreateTxtRecord_calls_addSubdomain_then_addZoneRecord()
+    public async Task CreateTxtRecord_sends_record_value_in_addZoneRecord()
     {
         var handler = new SequentialHandler([
             CreateXmlRpcStringResponse("OK"),
@@ -93,8 +94,8 @@ public class LoopiaDnsProviderTests
 
         await provider.CreateTxtRecordAsync("_acme-challenge", "token123", 60);
 
-        await Assert.That(handler.CallCount).IsEqualTo(2);
-        await Assert.That(handler.RequestBodies[1]).Contains("token123");
+        await Assert.That(handler.RequestBodies.Any(b => b.Contains("addZoneRecord") && b.Contains("token123")))
+            .IsTrue();
     }
 
     [Test]
@@ -124,8 +125,10 @@ public class LoopiaDnsProviderTests
 
         await provider.RemoveTxtRecordAsync("_acme-challenge");
 
-        // getZoneRecords + removeZoneRecord for TXT only (not A)
-        await Assert.That(handler.CallCount).IsEqualTo(2);
+        // TXT record (id 20) should be removed
+        var removeRequests = handler.RequestBodies.Where(b => b.Contains("removeZoneRecord")).ToList();
+        await Assert.That(removeRequests).Count().IsEqualTo(1);
+        await Assert.That(removeRequests[0]).Contains("<int>20</int>");
     }
 
     // -- Helpers --

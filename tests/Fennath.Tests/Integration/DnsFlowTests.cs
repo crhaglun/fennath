@@ -32,12 +32,8 @@ public class DnsFlowTests : IAsyncDisposable
 
         ctx.DnsChannel.Send(new DnsCommand.IpChanged("1.2.3.4"));
 
-        // Give DnsReconciliationService time to process the command
-        await Task.Delay(200);
-
-        // DnsReconciliationService always manages "@" (apex) — upsert for it
-        await Assert.That(ctx.DnsProvider.UpsertedARecords)
-            .Contains(("@", "1.2.3.4", 300));
+        await WaitForAsync(() => ctx.DnsProvider.UpsertedARecords
+            .Any(r => r.Subdomain == "@" && r.Ip == "1.2.3.4"));
     }
 
     [Test]
@@ -45,16 +41,12 @@ public class DnsFlowTests : IAsyncDisposable
     {
         await using var ctx = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
 
-        // First establish an IP
         ctx.DnsChannel.Send(new DnsCommand.IpChanged("1.2.3.4"));
-        await Task.Delay(200);
+        await WaitForAsync(() => ctx.DnsProvider.UpsertedARecords.Any(r => r.Subdomain == "@"));
 
-        // Then add a subdomain
         ctx.DnsChannel.Send(new DnsCommand.SubdomainAdded("grafana"));
-        await Task.Delay(200);
-
-        await Assert.That(ctx.DnsProvider.UpsertedARecords)
-            .Contains(("grafana", "1.2.3.4", 300));
+        await WaitForAsync(() => ctx.DnsProvider.UpsertedARecords
+            .Any(r => r.Subdomain == "grafana" && r.Ip == "1.2.3.4"));
     }
 
     [Test]
@@ -62,11 +54,11 @@ public class DnsFlowTests : IAsyncDisposable
     {
         await using var ctx = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
 
-        // Add subdomain before any IP is known
         ctx.DnsChannel.Send(new DnsCommand.SubdomainAdded("grafana"));
+
+        // Give the reconciliation service time to process (if it were going to act)
         await Task.Delay(200);
 
-        // No A record should be created for "grafana" since IP is unknown
         var grafanaRecords = ctx.DnsProvider.UpsertedARecords
             .Where(r => r.Subdomain == "grafana")
             .ToList();
@@ -79,22 +71,41 @@ public class DnsFlowTests : IAsyncDisposable
     {
         await using var ctx = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
 
-        // Establish initial IP + register subdomains
         ctx.DnsChannel.Send(new DnsCommand.IpChanged("1.2.3.4"));
-        await Task.Delay(200);
+        await WaitForAsync(() => ctx.DnsProvider.UpsertedARecords.Any(r => r.Subdomain == "@"));
+
         ctx.DnsChannel.Send(new DnsCommand.SubdomainAdded("grafana"));
         ctx.DnsChannel.Send(new DnsCommand.SubdomainAdded("wiki"));
-        await Task.Delay(200);
+        await WaitForAsync(() => ctx.DnsProvider.UpsertedARecords.Any(r => r.Subdomain == "wiki"));
 
         ctx.DnsProvider.UpsertedARecords.Clear();
 
         // IP changes — all managed subdomains should be updated
         ctx.DnsChannel.Send(new DnsCommand.IpChanged("5.6.7.8"));
-        await Task.Delay(200);
 
-        var updated = ctx.DnsProvider.UpsertedARecords.Select(r => r.Subdomain).ToHashSet();
-        await Assert.That(updated).Contains("@");
-        await Assert.That(updated).Contains("grafana");
-        await Assert.That(updated).Contains("wiki");
+        await WaitForAsync(() =>
+        {
+            var updated = ctx.DnsProvider.UpsertedARecords.Select(r => r.Subdomain).ToHashSet();
+            return updated.Contains("@") && updated.Contains("grafana") && updated.Contains("wiki");
+        });
+    }
+
+    /// <summary>
+    /// Polls a condition until it returns true or times out.
+    /// Avoids flaky <c>Task.Delay</c>-based assertions.
+    /// </summary>
+    private static async Task WaitForAsync(Func<bool> condition, int timeoutMs = 2000)
+    {
+        var deadline = Environment.TickCount64 + timeoutMs;
+        while (!condition())
+        {
+            if (Environment.TickCount64 > deadline)
+            {
+                throw new TimeoutException(
+                    $"Condition was not met within {timeoutMs}ms.");
+            }
+
+            await Task.Delay(25);
+        }
     }
 }

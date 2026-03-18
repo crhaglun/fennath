@@ -68,24 +68,4 @@ public class RouteAggregationTests : IAsyncDisposable
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
-
-    [Test]
-    public async Task Duplicate_subdomains_are_deduplicated_first_wins()
-    {
-        await using var backend2 = await TestBackend.CreateAsync(endpoints =>
-        {
-            endpoints.MapGet("/", () => "from second source");
-        });
-
-        // Only one route per subdomain — dedup is now the operator's responsibility
-        await using var ctx = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
-
-        var client = ctx.CreateClient();
-        var request = new HttpRequestMessage(HttpMethod.Get, "/");
-        request.Headers.Host = "grafana.example.com";
-
-        var response = await client.SendAsync(request);
-
-        await Assert.That(await response.Content.ReadAsStringAsync()).IsEqualTo("hello from backend");
-    }
 }

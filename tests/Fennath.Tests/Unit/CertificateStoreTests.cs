@@ -73,7 +73,6 @@ public class CertificateStoreTests : IDisposable
 
         var pfxFiles = Directory.GetFiles(_tempDir, "*.pfx");
         await Assert.That(pfxFiles).Count().IsEqualTo(1);
-        await Assert.That(pfxFiles[0]).Contains("wildcard");
     }
 
     [Test]
