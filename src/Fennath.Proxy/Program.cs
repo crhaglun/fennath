@@ -66,10 +66,8 @@ var app = builder.Build();
 
 var config = app.Services.GetRequiredService<IOptions<ProxyConfig>>().Value;
 
-// HTTP → HTTPS redirect (when enabled in config)
-app.UseHttpsRedirection();
-
 app.MapHealthChecks("/healthz");
+app.UseHttpsRedirection();
 app.MapReverseProxy(proxyPipeline =>
 {
     proxyPipeline.UseMiddleware<Fennath.Telemetry.ProxyMetricsMiddleware>();

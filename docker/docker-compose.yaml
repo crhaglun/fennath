@@ -2,7 +2,7 @@ services:
   # Reverse proxy — TLS termination, YARP routing
   # Has: NOTHING sensitive — reads config from shared volume
   # Does NOT have: Docker socket, DNS credentials (see ADR-014)
-  fennath:
+  fennath-proxy:
     build:
       context: ..
       dockerfile: docker/Dockerfile.proxy
@@ -26,13 +26,14 @@ services:
       - Fennath__Certificates__StoragePath=/data/shared/certs
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
+      - OTEL_EXPORTER_OTLP_PROTOCOL=${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
       - OTEL_SERVICE_NAME=fennath-proxy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:${Fennath__Server__HttpPort:-8080}/healthz || exit 1"]
+      test: ["CMD-SHELL", "nc -z localhost ${Fennath__Server__HttpPort:-8080}"]
       interval: 30s
       timeout: 5s
-      retries: 3
-      start_period: 15s
+      retries: 5
+      start_period: 60s
     logging:
       driver: json-file
       options:
@@ -73,6 +74,7 @@ services:
       - Fennath__Dns__PublicIpCheckIntervalSeconds=${Fennath__Dns__PublicIpCheckIntervalSeconds:-300}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
+      - OTEL_EXPORTER_OTLP_PROTOCOL=${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
       - OTEL_SERVICE_NAME=fennath-operator
     logging:
       driver: json-file
