@@ -88,6 +88,7 @@ public class CertificateStoreTests : IDisposable
     [Test]
     public async Task LoadFromDisk_SkipsExpiredCertificate()
     {
+        Directory.CreateDirectory(_tempDir);
         using var expired = CreateCert(TimeSpan.FromDays(-1));
         await File.WriteAllBytesAsync(
             Path.Combine(_tempDir, "wildcard.pfx"),

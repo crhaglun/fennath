@@ -30,6 +30,7 @@ public class DnsFlowTests : IAsyncDisposable
     {
         await using var ctx = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
 
+        ctx.DnsChannel.Send(new DnsCommand.SubdomainAdded("@"));
         ctx.DnsChannel.Send(new DnsCommand.IpChanged("1.2.3.4"));
 
         await WaitForAsync(() => ctx.DnsProvider.UpsertedARecords
@@ -41,10 +42,11 @@ public class DnsFlowTests : IAsyncDisposable
     {
         await using var ctx = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
 
+        // Channel is FIFO — IpChanged is processed before SubdomainAdded,
+        // so _currentIp is set when grafana is added.
         ctx.DnsChannel.Send(new DnsCommand.IpChanged("1.2.3.4"));
-        await WaitForAsync(() => ctx.DnsProvider.UpsertedARecords.Any(r => r.Subdomain == "@"));
-
         ctx.DnsChannel.Send(new DnsCommand.SubdomainAdded("grafana"));
+
         await WaitForAsync(() => ctx.DnsProvider.UpsertedARecords
             .Any(r => r.Subdomain == "grafana" && r.Ip == "1.2.3.4"));
     }
@@ -71,12 +73,12 @@ public class DnsFlowTests : IAsyncDisposable
     {
         await using var ctx = await FennathTestHost.CreateAsync(("grafana", _backend.Url));
 
-        ctx.DnsChannel.Send(new DnsCommand.IpChanged("1.2.3.4"));
-        await WaitForAsync(() => ctx.DnsProvider.UpsertedARecords.Any(r => r.Subdomain == "@"));
-
+        // Register subdomains, then set IP so all get their initial A record
         ctx.DnsChannel.Send(new DnsCommand.SubdomainAdded("grafana"));
         ctx.DnsChannel.Send(new DnsCommand.SubdomainAdded("wiki"));
-        await WaitForAsync(() => ctx.DnsProvider.UpsertedARecords.Any(r => r.Subdomain == "wiki"));
+        ctx.DnsChannel.Send(new DnsCommand.IpChanged("1.2.3.4"));
+        await WaitForAsync(() => ctx.DnsProvider.UpsertedARecords
+            .Any(r => r.Subdomain == "wiki" && r.Ip == "1.2.3.4"));
 
         ctx.DnsProvider.UpsertedARecords.Clear();
 
@@ -86,7 +88,7 @@ public class DnsFlowTests : IAsyncDisposable
         await WaitForAsync(() =>
         {
             var updated = ctx.DnsProvider.UpsertedARecords.Select(r => r.Subdomain).ToHashSet();
-            return updated.Contains("@") && updated.Contains("grafana") && updated.Contains("wiki");
+            return updated.Contains("grafana") && updated.Contains("wiki");
         });
     }
 
