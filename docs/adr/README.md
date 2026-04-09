@@ -25,6 +25,7 @@ Each record captures the context, decision, and consequences so that future cont
 | [013](013-per-subdomain-dns-reconciliation.md) | Per-subdomain DNS with event-driven reconciliation | Accepted |
 | [014](014-sidecar-credential-isolation.md) | Operator architecture — credential and privilege isolation | Accepted |
 | [015](015-self-signed-placeholder-certificate.md) | Self-signed placeholder certificate on startup | Accepted |
+| [016](016-docker-secrets-credentials.md) | Docker secrets for credential management | Accepted |
 
 ## Format
 

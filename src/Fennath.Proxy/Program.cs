@@ -8,6 +8,7 @@ using Microsoft.Extensions.Options;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
 
 // YARP route configuration — written by the operator container to the shared volume.
 // .NET's built-in file watcher detects changes and YARP's LoadFromConfig() reloads automatically.

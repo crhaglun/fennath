@@ -9,6 +9,8 @@ obj/
 # Local configuration (contains secrets — never commit)
 appsettings.local.json
 docker/.env
+docker/secrets/*
+!docker/secrets/README.md
 
 # Build results
 [Dd]ebug/

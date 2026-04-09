@@ -11,6 +11,7 @@ using Microsoft.Extensions.Options;
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
 
 builder.Services
     .AddOptions<OperatorConfig>()

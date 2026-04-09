@@ -64,8 +64,6 @@ services:
       - Fennath__Domain=${Fennath__Domain}
       - Fennath__Subdomain=${Fennath__Subdomain:-}
       - Fennath__Docker__PollIntervalSeconds=${Fennath__Docker__PollIntervalSeconds:-15}
-      - Fennath__Dns__Loopia__Username=${Fennath__Dns__Loopia__Username}
-      - Fennath__Dns__Loopia__Password=${Fennath__Dns__Loopia__Password}
       - Fennath__Certificates__Email=${Fennath__Certificates__Email}
       - Fennath__Certificates__Staging=${Fennath__Certificates__Staging:-false}
       - Fennath__Certificates__StoragePath=/data/shared/certs
@@ -76,6 +74,9 @@ services:
       - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
       - OTEL_EXPORTER_OTLP_PROTOCOL=${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
       - OTEL_SERVICE_NAME=fennath-operator
+    secrets:
+      - Fennath__Dns__Loopia__Username
+      - Fennath__Dns__Loopia__Password
     logging:
       driver: json-file
       options:
@@ -92,3 +93,9 @@ services:
 
 volumes:
   fennath-config:
+
+secrets:
+  Fennath__Dns__Loopia__Username:
+    file: ./secrets/Fennath__Dns__Loopia__Username
+  Fennath__Dns__Loopia__Password:
+    file: ./secrets/Fennath__Dns__Loopia__Password

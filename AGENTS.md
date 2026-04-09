@@ -68,8 +68,8 @@ fennath/
 - Configuration uses the standard .NET `IConfiguration` / `IOptions<T>` pattern,
   bound from the `"Fennath"` section in `appsettings.json` (or environment variables,
   command-line args, etc.).
-- Sensitive values should use environment variables (`Fennath__Dns__Loopia__Password`),
-  user-secrets, or another secure provider — never hardcoded in config files.
+- Sensitive values use Docker secrets (mounted at `/run/secrets/` via `AddKeyPerFile`,
+  see ADR-016). For local development, use environment variables or user-secrets.
 - Config changes are hot-reloadable via `IOptionsMonitor<T>`.
 
 ### Testing

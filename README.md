@@ -53,9 +53,9 @@ curl -I https://grafana.yourdomain.com
 
 ## Configuration
 
-All configuration is via environment variables in `docker/.env`. Copy
-[`docker/.env.example`](docker/.env.example) to `docker/.env` (gitignored) and
-edit for your environment.
+Non-sensitive settings are configured via environment variables in `docker/.env`.
+Copy [`docker/.env.example`](docker/.env.example) to `docker/.env` (gitignored)
+and edit for your environment.
 
 Fennath uses the `Fennath__` prefix with `__` as section separator, following the
 standard .NET configuration convention:
@@ -63,13 +63,22 @@ standard .NET configuration convention:
 ```bash
 # Required
 Fennath__Domain=example.com                          # Your registered domain
-Fennath__Dns__Loopia__Username=user@loopiaapi
-Fennath__Dns__Loopia__Password=your-api-password
 Fennath__Certificates__Email=admin@example.com
-
-# Optional — scope all services under a subdomain prefix
-# Fennath__Subdomain=lab    # → services at *.lab.example.com
 ```
+
+### Docker Secrets
+
+Sensitive credentials use [Docker secrets](https://docs.docker.com/compose/how-tos/use-secrets/)
+instead of environment variables ([ADR-016](docs/adr/016-docker-secrets-credentials.md)).
+Create the secret files in `docker/secrets/` before deploying:
+
+```bash
+cd docker/secrets
+echo -n "user@loopiaapi" > Fennath__Dns__Loopia__Username
+echo -n "your-api-password" > Fennath__Dns__Loopia__Password
+```
+
+See [`docker/secrets/README.md`](docker/secrets/README.md) for details.
 
 See [`docker/.env.example`](docker/.env.example) for the full list of settings
 including intervals, logging levels, and OpenTelemetry configuration.
