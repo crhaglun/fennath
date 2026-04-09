@@ -39,7 +39,7 @@ builder.Services.AddOptions<Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionOpt
 
 // Graceful shutdown — allow in-flight requests to drain before terminating
 builder.Services.Configure<HostOptions>(opts => opts.ShutdownTimeout = TimeSpan.FromSeconds(30));
-
+builder.Services.AddHttpClient();
 builder.Services.AddFennathTelemetry();
 builder.Services.AddFennathProxy(builder.Configuration);
 builder.Services.AddHealthChecks()
