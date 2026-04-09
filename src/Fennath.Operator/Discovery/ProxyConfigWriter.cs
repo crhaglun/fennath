@@ -120,14 +120,12 @@ public sealed partial class ProxyConfigWriter(
 
             routesDict[routeId] = new RouteConfig
             {
-                RouteId = routeId,
                 ClusterId = clusterId,
                 Match = new RouteMatch { Hosts = [host] }
             };
 
             clustersDict[clusterId] = new ClusterConfig
             {
-                ClusterId = clusterId,
                 Destinations = new Dictionary<string, DestinationConfig>
                 {
                     ["default"] = new DestinationConfig { Address = route.BackendUrl }

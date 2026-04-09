@@ -46,6 +46,7 @@ builder.Services.AddHttpClient<PublicIpResolver>(client => client.Timeout = Time
     .AddStandardResilienceHandler();
 builder.Services.AddSingleton<PublicIpResolver>();
 builder.Services.AddSingleton<DnsCommandChannel>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHostedService<IpMonitorService>();
 builder.Services.AddHostedService<DnsReconciliationService>();
 

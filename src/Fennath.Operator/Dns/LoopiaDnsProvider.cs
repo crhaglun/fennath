@@ -205,15 +205,16 @@ public sealed partial class LoopiaDnsProvider(
 
     private async Task<XDocument> CallAsync(string method, XElement[] parameters, CancellationToken ct)
     {
-        LogXmlRpcCall(Logger, method);
-
         var request = new XDocument(
             new XElement("methodCall",
                 new XElement("methodName", method),
                 new XElement("params",
                     parameters.Select(p => new XElement("param", new XElement("value", p))))));
 
-        using var content = new StringContent(request.ToString(), System.Text.Encoding.UTF8, "text/xml");
+        var contentString = request.ToString();
+        LogXmlRpcCall(Logger, contentString);
+
+        using var content = new StringContent(contentString, System.Text.Encoding.UTF8, "text/xml");
         using var response = await HttpClient.PostAsync(ApiUrl, content, ct);
         response.EnsureSuccessStatusCode();
 
@@ -322,8 +323,8 @@ public sealed partial class LoopiaDnsProvider(
     [LoggerMessage(EventId = 1014, Level = LogLevel.Information, Message = "Removed TXT record(s) for '{subdomain}'")]
     private static partial void LogTxtRecordRemoved(ILogger logger, string subdomain);
 
-    [LoggerMessage(EventId = 1015, Level = LogLevel.Debug, Message = "XML-RPC call: {method}")]
-    private static partial void LogXmlRpcCall(ILogger logger, string method);
+    [LoggerMessage(EventId = 1015, Level = LogLevel.Debug, Message = "XML-RPC call: \n{content}")]
+    private static partial void LogXmlRpcCall(ILogger logger, string content);
 
     [LoggerMessage(EventId = 1016, Level = LogLevel.Information, Message = "XML-RPC {method}: domain='{domain}', subdomain='{subdomain}'")]
     private static partial void LogXmlRpcParams(ILogger logger, string method, string domain, string subdomain);

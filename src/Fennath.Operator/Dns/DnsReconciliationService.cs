@@ -13,7 +13,7 @@ public sealed partial class DnsReconciliationService(
     FennathMetrics Metrics,
     ILogger<DnsReconciliationService> Logger) : BackgroundService
 {
-    private readonly HashSet<string> _managedSubdomains = new(StringComparer.OrdinalIgnoreCase) { "@" };
+    private readonly HashSet<string> _managedSubdomains = new(StringComparer.OrdinalIgnoreCase);
     private string? _currentIp;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

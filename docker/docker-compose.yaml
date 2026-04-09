@@ -15,7 +15,7 @@ services:
       - "80:${Fennath__Server__HttpPort:-8080}"
       - "443:${Fennath__Server__HttpsPort:-8443}"
     volumes:
-      - shared:/data/shared:ro
+      - fennath-config:/data/shared:ro
     tmpfs:
       - /tmp
     environment:
@@ -55,7 +55,7 @@ services:
     group_add:
       - ${DOCKER_GID:-999}
     volumes:
-      - shared:/data/shared
+      - fennath-config:/data/shared
       - /var/run/docker.sock:/var/run/docker.sock:ro
     tmpfs:
       - /tmp
@@ -82,18 +82,11 @@ services:
 
   # Example backends for experimentation — traefik/whoami echoes
   # request info (headers, hostname, IP) as plain text.
-  app-one:
+  echo:
     image: traefik/whoami
-    container_name: app-one
+    container_name: echo
     labels:
-      - "fennath.subdomain=one"
-
-  app-two:
-    image: traefik/whoami
-    container_name: app-two
-    command: --name app-two
-    labels:
-      - "fennath.subdomain=two"
+      - "fennath.subdomain=echo"
 
 volumes:
-  shared:
+  fennath-config:
