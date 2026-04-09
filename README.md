@@ -54,7 +54,7 @@ curl -I https://grafana.yourdomain.com
 ## Configuration
 
 All configuration is via environment variables in `docker/.env`. Copy
-[`docker/example.env`](docker/example.env) to `docker/.env` (gitignored) and
+[`docker/.env.example`](docker/.env.example) to `docker/.env` (gitignored) and
 edit for your environment.
 
 Fennath uses the `Fennath__` prefix with `__` as section separator, following the
@@ -71,8 +71,8 @@ Fennath__Certificates__Email=admin@example.com
 # Fennath__Subdomain=lab    # → services at *.lab.example.com
 ```
 
-See `docker/example.env` for the full list of settings including intervals,
-logging levels, and OpenTelemetry configuration.
+See [`docker/.env.example`](docker/.env.example) for the full list of settings
+including intervals, logging levels, and OpenTelemetry configuration.
 
 ### Docker Label Discovery
 
