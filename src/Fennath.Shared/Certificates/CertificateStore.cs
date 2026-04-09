@@ -34,8 +34,6 @@ public sealed partial class CertificateStore : IDisposable
         _wildcardHost = $"*.{options.Value.EffectiveDomain}";
         _logger = logger;
 
-        Directory.CreateDirectory(_storagePath);
-
         if (TryLoadFromDisk(out var cert))
         {
             _certificate = cert;
@@ -180,6 +178,7 @@ public sealed partial class CertificateStore : IDisposable
     {
         var path = Path.Combine(_storagePath, "wildcard.pfx");
         var tempPath = path + ".tmp";
+        Directory.CreateDirectory(_storagePath);
         File.WriteAllBytes(tempPath, certificate.Export(X509ContentType.Pfx));
         File.Move(tempPath, path, overwrite: true);
     }

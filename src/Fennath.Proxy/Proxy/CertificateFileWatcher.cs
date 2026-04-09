@@ -17,7 +17,19 @@ public sealed partial class CertificateFileWatcher(
         var directory = Path.GetDirectoryName(certPath)!;
         var fileName = Path.GetFileName(certPath);
 
-        Directory.CreateDirectory(directory);
+        while (!Directory.Exists(directory))
+        {
+            LogWaitingForDirectory(Logger, directory);
+            try
+            {
+                await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                // Normal shutdown
+                return;
+            }
+        }
 
         using var watcher = new FileSystemWatcher(directory, fileName)
         {
@@ -64,4 +76,7 @@ public sealed partial class CertificateFileWatcher(
 
     [LoggerMessage(EventId = 1402, Level = LogLevel.Warning, Message = "Failed to reload certificate from {path}")]
     private static partial void LogReloadFailed(ILogger logger, string path, Exception ex);
+
+    [LoggerMessage(EventId = 1403, Level = LogLevel.Information, Message = "Waiting for directory to be created: {directory}")]
+    private static partial void LogWaitingForDirectory(ILogger logger, string directory);
 }
