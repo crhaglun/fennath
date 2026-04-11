@@ -72,4 +72,36 @@ public class RouteConflictResolutionTests
         var apex = merged.First(r => r.IsApex);
         await Assert.That(apex.BackendUrl).IsEqualTo("http://localhost:8080");
     }
+
+    [Test]
+    public async Task Static_route_takes_precedence_over_docker_for_same_subdomain()
+    {
+        // Static routes are listed first (by DI registration order in Program.cs),
+        // and Merge keeps the first occurrence per subdomain.
+        var routes = new List<DiscoveredRoute>
+        {
+            new("myapp", "http://192.168.1.50:8080", "static"),
+            new("myapp", "http://docker-container:9090", "docker:abc123"),
+        };
+
+        var merged = ProxyConfigWriter.Merge(routes);
+
+        await Assert.That(merged).Count().IsEqualTo(1);
+        await Assert.That(merged[0].BackendUrl).IsEqualTo("http://192.168.1.50:8080");
+        await Assert.That(merged[0].Source).IsEqualTo("static");
+    }
+
+    [Test]
+    public async Task Static_and_docker_routes_for_different_subdomains_coexist()
+    {
+        var routes = new List<DiscoveredRoute>
+        {
+            new("nas", "http://192.168.1.50:5000", "static"),
+            new("grafana", "http://grafana-container:3000", "docker:abc123"),
+        };
+
+        var merged = ProxyConfigWriter.Merge(routes);
+
+        await Assert.That(merged).Count().IsEqualTo(2);
+    }
 }

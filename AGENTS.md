@@ -27,7 +27,7 @@ fennath/
 │   ├── Proxy/                # YARP setup, config validator, cert file watcher
 │   └── Telemetry/            # OpenTelemetry setup and proxy metrics middleware
 ├── src/Fennath.Operator/      # Operator container — Docker discovery, DNS, ACME certs
-│   ├── Discovery/            # Docker route discovery, proxy config writer (YARP JSON)
+│   ├── Discovery/            # Docker route discovery, static route discovery, proxy config writer (YARP JSON)
 │   ├── Certificates/         # ACME/Let's Encrypt cert management
 │   ├── Dns/                  # DNS management: IP monitoring, reconciliation, Loopia provider
 │   └── Telemetry/            # OpenTelemetry setup for operator

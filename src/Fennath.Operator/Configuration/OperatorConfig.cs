@@ -33,6 +33,32 @@ public sealed class OperatorConfig
     /// The proxy watches this file for hot-reload.
     /// </summary>
     public string YarpConfigPath { get; set; } = "/data/shared/yarp-config.json";
+
+    /// <summary>
+    /// Static routes for non-Docker backends (VMs, physical servers, etc.).
+    /// Each entry maps a subdomain to a backend URL. Use "@" for the apex domain.
+    /// </summary>
+    [ValidateEnumeratedItems]
+    public List<StaticRouteEntry> StaticRoutes { get; set; } = [];
+}
+
+/// <summary>
+/// A static route entry mapping a subdomain to a backend URL.
+/// </summary>
+public sealed class StaticRouteEntry
+{
+    /// <summary>
+    /// Subdomain to route (e.g., "nas", "pve"). Use "@" for the apex domain.
+    /// </summary>
+    [Required]
+    public string Subdomain { get; set; } = "";
+
+    /// <summary>
+    /// Absolute URL of the backend service (e.g., "http://192.168.1.50:5000").
+    /// </summary>
+    [Required]
+    [Url]
+    public string BackendUrl { get; set; } = "";
 }
 
 public sealed class DnsConfig

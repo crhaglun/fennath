@@ -31,6 +31,11 @@ builder.Services
 // Telemetry
 builder.Services.AddOperatorTelemetry();
 
+// Static route discovery — reads routes from config for non-Docker backends (VMs, physical hosts)
+// Registered before Docker so static routes take precedence in merge (first wins)
+builder.Services.AddSingleton<StaticRouteDiscovery>();
+builder.Services.AddSingleton<IRouteDiscovery>(sp => sp.GetRequiredService<StaticRouteDiscovery>());
+
 // Docker route discovery — polls Docker API for labeled containers
 builder.Services.AddSingleton<DockerRouteDiscovery>();
 builder.Services.AddSingleton<IRouteDiscovery>(sp => sp.GetRequiredService<DockerRouteDiscovery>());
