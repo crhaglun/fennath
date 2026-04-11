@@ -4,9 +4,9 @@ namespace Fennath.Proxy;
 
 /// <summary>
 /// Configures the YARP reverse proxy pipeline. Route configuration is loaded
-/// from a JSON file on the shared volume, written by the operator container.
-/// YARP watches for config changes via .NET's built-in file change tokens
-/// (<c>reloadOnChange: true</c> on <c>AddJsonFile</c>).
+/// from JSON files on the shared volume, written by operator container(s).
+/// Files matching <c>yarp-config-*.json</c> are auto-discovered and watched
+/// for changes via <see cref="DirectoryJsonConfigurationProvider"/>.
 ///
 /// Docker discovery and DNS/ACME management run in the operator container
 /// (see ADR-014).

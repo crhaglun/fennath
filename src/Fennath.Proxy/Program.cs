@@ -11,15 +11,10 @@ builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, relo
 builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
 
 // YARP route configuration — written by operator container(s) to the shared volume.
-// .NET's built-in file watcher detects changes and YARP's LoadFromConfig() reloads automatically.
-// Multi-operator: each operator writes a separate config file; we load and merge them all.
+// Auto-discovers all yarp-config-*.json files and watches for new/changed/deleted files.
 var fennathSection = builder.Configuration.GetSection("Fennath");
-var yarpConfigPaths = fennathSection.GetSection("YarpConfigPaths").Get<string[]>()
-    ?? ["/data/shared/yarp-config.json"];
-foreach (var path in yarpConfigPaths)
-{
-    builder.Configuration.AddJsonFile(path, optional: true, reloadOnChange: true);
-}
+var yarpConfigDir = fennathSection["YarpConfigDirectory"] ?? "/data/shared";
+builder.Configuration.AddJsonDirectory(yarpConfigDir, "yarp-config-*.json");
 
 builder.Services
     .AddOptions<ProxyConfig>()

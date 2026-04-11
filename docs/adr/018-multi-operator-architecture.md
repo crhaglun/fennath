@@ -54,17 +54,18 @@ multiple operators write separate YARP config files that the proxy merges.
 **Per-operator config paths:**
 
 Each operator instance is configured with a unique `YarpConfigPath` (e.g.,
-`yarp-config-lab.json`) and `Certificates:StoragePath` (e.g., `/data/shared/certs/lab/`).
+`yarp-config-lab.json`). Certificate storage uses a shared directory (`/data/shared/certs/`).
 No code changes are needed — these are already configurable.
 
 ### Proxy-side changes
 
-**Multi-file YARP configuration:**
+**Auto-discovered YARP configuration:**
 
-The proxy loads YARP config files listed in `YarpConfigPaths` (defaults to a single
-`/data/shared/yarp-config.json`). .NET configuration's key-path merge combines
-route/cluster entries from all files into a single YARP configuration. Each file has
-`reloadOnChange: true` for hot-reload when operators update their routes.
+The proxy uses `DirectoryJsonConfigurationProvider` to auto-discover all
+`yarp-config-*.json` files in `YarpConfigDirectory` (defaults to `/data/shared/`).
+A `FileSystemWatcher` detects new, changed, and deleted files at runtime — adding a new
+operator does not require a proxy restart. .NET configuration's key-path merge combines
+route/cluster entries from all files into a single YARP configuration.
 
 **Multi-cert SNI selection:**
 
@@ -93,9 +94,6 @@ services:
   proxy:
     image: fennath-proxy
     ports: ["443:8443", "80:8080"]
-    environment:
-      - Fennath__YarpConfigPaths__0=/data/shared/yarp-config-lab.json
-      - Fennath__YarpConfigPaths__1=/data/shared/yarp-config-apps.json
     volumes:
       - fennath-shared:/data/shared:ro
 
@@ -105,7 +103,7 @@ services:
       - Fennath__Domain=example.com
       - Fennath__Subdomain=lab
       - Fennath__YarpConfigPath=/data/shared/yarp-config-lab.json
-      - Fennath__Certificates__StoragePath=/data/shared/certs/lab
+      - Fennath__Certificates__StoragePath=/data/shared/certs
     volumes:
       - fennath-shared:/data/shared
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -115,7 +113,7 @@ services:
     environment:
       - Fennath__Domain=example.org
       - Fennath__YarpConfigPath=/data/shared/yarp-config-apps.json
-      - Fennath__Certificates__StoragePath=/data/shared/certs/apps
+      - Fennath__Certificates__StoragePath=/data/shared/certs
     volumes:
       - fennath-shared:/data/shared
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -145,8 +143,6 @@ services:
 - No new dependencies or external tools.
 
 **Negative:**
-- Adding a new YARP config file to `YarpConfigPaths` requires a proxy restart (content
-  changes within existing files are hot-reloaded).
 - The `fennath.domain` label is required on all Docker containers — existing deployments
   must add this label to each service.
 - The certificate store's SAN/CN parsing is a new code path that must handle malformed
