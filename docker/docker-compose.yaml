@@ -114,10 +114,10 @@ volumes:
 
 secrets:
   lab-loopia-username:
-    file: ./secrets/lab-loopia-username
+    file: ~/.fennath-secrets/lab-loopia-username
   lab-loopia-password:
-    file: ./secrets/lab-loopia-password
+    file: ~/.fennath-secrets/lab-loopia-password
   # apps-loopia-username:
-  #   file: ./secrets/apps-loopia-username
+  #   file: ~/.fennath-secrets/apps-loopia-username
   # apps-loopia-password:
-  #   file: ./secrets/apps-loopia-password
+  #   file: ~/.fennath-secrets/apps-loopia-password

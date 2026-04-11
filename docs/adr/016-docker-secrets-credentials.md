@@ -33,7 +33,7 @@ The `optional: true` flag ensures the application still starts when no secrets
 directory exists (local development, or users who prefer environment variables).
 
 Secret files are declared in the Docker Compose `secrets:` section and stored
-in `docker/secrets/` (gitignored).
+outside the repository (e.g. `~/.fennath-secrets/`).
 
 ## Consequences
 

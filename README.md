@@ -70,15 +70,16 @@ Fennath__Certificates__Email=admin@example.com
 
 Sensitive credentials use [Docker secrets](https://docs.docker.com/compose/how-tos/use-secrets/)
 instead of environment variables ([ADR-016](docs/adr/016-docker-secrets-credentials.md)).
-Create the secret files in `docker/secrets/` before deploying:
+Create the secret files in `~/.fennath-secrets/` before deploying:
 
 ```bash
-cd docker/secrets
-echo -n "user@loopiaapi" > Fennath__Dns__Loopia__Username
-echo -n "your-api-password" > Fennath__Dns__Loopia__Password
+mkdir -p ~/.fennath-secrets
+echo -n "user@loopiaapi" > ~/.fennath-secrets/lab-loopia-username
+echo -n "your-api-password" > ~/.fennath-secrets/lab-loopia-password
 ```
 
-See [`docker/secrets/README.md`](docker/secrets/README.md) for details.
+The compose file remaps these filenames to the config keys .NET expects
+(e.g. `lab-loopia-username` → `Fennath__Dns__Loopia__Username`).
 
 See [`docker/.env.example`](docker/.env.example) for the full list of settings
 including intervals, logging levels, and OpenTelemetry configuration.
