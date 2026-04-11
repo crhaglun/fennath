@@ -12,24 +12,17 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "80:${Fennath__Server__HttpPort:-8080}"
-      - "443:${Fennath__Server__HttpsPort:-8443}"
+      - "80:8080"
+      - "443:8443"
     volumes:
       - fennath-config:/data/shared:ro
     tmpfs:
       - /tmp
-    environment:
-      - Fennath__Domain=${Fennath__Domain}
-      - Fennath__Subdomain=${Fennath__Subdomain:-}
-      - Fennath__Server__HttpsPort=${Fennath__Server__HttpsPort:-8443}
-      - Fennath__Server__HttpPort=${Fennath__Server__HttpPort:-8080}
-      - Fennath__Certificates__StoragePath=/data/shared/certs
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-      - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
-      - OTEL_EXPORTER_OTLP_PROTOCOL=${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
-      - OTEL_SERVICE_NAME=fennath-proxy
+    env_file:
+      - env/common.env
+      - env/proxy.env
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost ${Fennath__Server__HttpPort:-8080}"]
+      test: ["CMD-SHELL", "nc -z localhost 8080"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -43,60 +36,88 @@ services:
   # Operator — Docker discovery, DNS management, ACME certificate provisioning
   # Has: Docker socket (read-only), DNS credentials (Loopia API)
   # Does NOT have: Internet-exposed ports (see ADR-014)
-  fennath-operator:
+  #
+  # Deploy one operator per domain. Each gets its own env_file and secrets.
+  # See docker/env/*.env.example for configuration templates.
+  fennath-operator-lab:
     build:
       context: ..
       dockerfile: docker/Dockerfile.operator
-    container_name: fennath-operator
+    container_name: fennath-operator-lab
     restart: unless-stopped
     read_only: true
     security_opt:
       - no-new-privileges:true
-    # Grant access to the Docker socket (host docker group GID)
     group_add:
-      - ${DOCKER_GID:-999}
+      - "${DOCKER_GID:-999}"
     volumes:
       - fennath-config:/data/shared
       - /var/run/docker.sock:/var/run/docker.sock:ro
     tmpfs:
       - /tmp
-    environment:
-      - Fennath__Domain=${Fennath__Domain}
-      - Fennath__Subdomain=${Fennath__Subdomain:-}
-      - Fennath__Docker__PollIntervalSeconds=${Fennath__Docker__PollIntervalSeconds:-15}
-      - Fennath__Certificates__Email=${Fennath__Certificates__Email}
-      - Fennath__Certificates__Staging=${Fennath__Certificates__Staging:-false}
-      - Fennath__Certificates__StoragePath=/data/shared/certs
-      - Fennath__Certificates__RenewalCheckIntervalSeconds=${Fennath__Certificates__RenewalCheckIntervalSeconds:-86400}
-      - Fennath__Certificates__RenewalThresholdDays=${Fennath__Certificates__RenewalThresholdDays:-30}
-      - Fennath__Dns__PublicIpCheckIntervalSeconds=${Fennath__Dns__PublicIpCheckIntervalSeconds:-300}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-      - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
-      - OTEL_EXPORTER_OTLP_PROTOCOL=${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
-      - OTEL_SERVICE_NAME=fennath-operator
+    env_file:
+      - env/common.env
+      - env/operator-lab.env
     secrets:
-      - Fennath__Dns__Loopia__Username
-      - Fennath__Dns__Loopia__Password
+      - source: lab-loopia-username
+        target: Fennath__Dns__Loopia__Username
+      - source: lab-loopia-password
+        target: Fennath__Dns__Loopia__Password
     logging:
       driver: json-file
       options:
         max-size: "50m"
         max-file: "5"
 
-  # Example backends for experimentation — traefik/whoami echoes
-  # request info (headers, hostname, IP) as plain text.
+  # Uncomment for a second domain:
+  # fennath-operator-apps:
+  #   build:
+  #     context: ..
+  #     dockerfile: docker/Dockerfile.operator
+  #   container_name: fennath-operator-apps
+  #   restart: unless-stopped
+  #   read_only: true
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   group_add:
+  #     - "${DOCKER_GID:-999}"
+  #   volumes:
+  #     - fennath-config:/data/shared
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #   tmpfs:
+  #     - /tmp
+  #   env_file:
+  #     - env/common.env
+  #     - env/operator-apps.env
+  #   secrets:
+  #     - source: apps-loopia-username
+  #       target: Fennath__Dns__Loopia__Username
+  #     - source: apps-loopia-password
+  #       target: Fennath__Dns__Loopia__Password
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-size: "50m"
+  #       max-file: "5"
+
+  # Example backend — traefik/whoami echoes request info as plain text.
+  # Set fennath.domain to match the operator that should claim this container.
   echo:
     image: traefik/whoami
     container_name: echo
     labels:
-      - "fennath.domain=${Fennath__Domain}"
       - "fennath.subdomain=echo"
+      - "fennath.domain=lab.example.com"
 
 volumes:
   fennath-config:
 
 secrets:
-  Fennath__Dns__Loopia__Username:
-    file: ./secrets/Fennath__Dns__Loopia__Username
-  Fennath__Dns__Loopia__Password:
-    file: ./secrets/Fennath__Dns__Loopia__Password
+  lab-loopia-username:
+    file: ./secrets/lab-loopia-username
+  lab-loopia-password:
+    file: ./secrets/lab-loopia-password
+  # apps-loopia-username:
+  #   file: ./secrets/apps-loopia-username
+  # apps-loopia-password:
+  #   file: ./secrets/apps-loopia-password
