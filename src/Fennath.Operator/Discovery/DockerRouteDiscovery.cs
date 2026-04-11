@@ -17,6 +17,10 @@ namespace Fennath.Operator.Discovery;
 ///   <item><c>fennath.subdomain</c> — required; comma-separated list of subdomains
 ///     (e.g. "www", "@,www", "grafana"). Use "@" for the apex/root domain.</item>
 ///   <item><c>fennath.port</c> — optional; backend port (default 80).</item>
+///   <item><c>fennath.domain</c> — optional; associates the container with a specific
+///     operator by matching <see cref="OperatorConfig.EffectiveDomain"/>. In multi-operator
+///     deployments, containers should have this label to avoid being claimed by
+///     multiple operators.</item>
 /// </list>
 /// </summary>
 public sealed partial class DockerRouteDiscovery(
@@ -25,6 +29,7 @@ public sealed partial class DockerRouteDiscovery(
 {
     private const string SubdomainLabel = "fennath.subdomain";
     private const string PortLabel = "fennath.port";
+    internal const string DomainLabel = "fennath.domain";
 
     private readonly DockerClient Client = new DockerClientConfiguration(
         new Uri(OptionsMonitor.CurrentValue.Docker.SocketPath.StartsWith('/')
@@ -82,12 +87,18 @@ public sealed partial class DockerRouteDiscovery(
 
         LogContainersFound(Logger, containers.Count);
 
+        var operatorDomain = OptionsMonitor.CurrentValue.EffectiveDomain;
         var routes = new List<DiscoveredRoute>();
         foreach (var container in containers)
         {
             var name = container.Names.FirstOrDefault()?.TrimStart('/') ?? container.ID[..12];
             try
             {
+                if (!IsClaimedByThisOperator(container.Labels, operatorDomain, name))
+                {
+                    continue;
+                }
+
                 routes.AddRange(ParseContainerRoutes(container.ID[..12], name, container.Labels));
             }
             catch (Exception ex)
@@ -100,6 +111,24 @@ public sealed partial class DockerRouteDiscovery(
         {
             _routes = routes;
         }
+    }
+
+    /// <summary>
+    /// Determines whether this operator should claim a container based on the
+    /// <c>fennath.domain</c> label. The label must be present and match this
+    /// operator's <see cref="OperatorConfig.EffectiveDomain"/>.
+    /// Containers without the label are skipped.
+    /// </summary>
+    internal static bool IsClaimedByThisOperator(
+        IDictionary<string, string> labels, string operatorDomain, string containerName)
+    {
+        if (!labels.TryGetValue(DomainLabel, out var labelDomain)
+            || string.IsNullOrWhiteSpace(labelDomain))
+        {
+            return false;
+        }
+
+        return string.Equals(labelDomain.Trim(), operatorDomain, StringComparison.OrdinalIgnoreCase);
     }
 
     private bool LogAndDetectChanges(

@@ -111,11 +111,12 @@ public sealed partial class ProxyConfigWriter(
     {
         var routesDict = new Dictionary<string, RouteConfig>();
         var clustersDict = new Dictionary<string, ClusterConfig>();
+        var domainSlug = domain.Replace('.', '-');
 
         foreach (var route in routes)
         {
-            var routeId = $"route-{route.Subdomain}";
-            var clusterId = $"cluster-{route.Subdomain}";
+            var routeId = $"route-{domainSlug}-{route.Subdomain}";
+            var clusterId = $"cluster-{domainSlug}-{route.Subdomain}";
             var host = route.IsApex ? domain : $"{route.Subdomain}.{domain}";
 
             routesDict[routeId] = new RouteConfig

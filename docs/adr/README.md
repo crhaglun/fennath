@@ -26,6 +26,8 @@ Each record captures the context, decision, and consequences so that future cont
 | [014](014-sidecar-credential-isolation.md) | Operator architecture — credential and privilege isolation | Accepted |
 | [015](015-self-signed-placeholder-certificate.md) | Self-signed placeholder certificate on startup | Accepted |
 | [016](016-docker-secrets-credentials.md) | Docker secrets for credential management | Accepted |
+| [017](017-static-route-discovery.md) | Static route discovery alongside Docker | Accepted |
+| [018](018-multi-operator-architecture.md) | Multi-operator architecture for multi-domain | Accepted |
 
 ## Format
 

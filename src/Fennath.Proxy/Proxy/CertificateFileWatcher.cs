@@ -3,9 +3,10 @@ using Fennath.Certificates;
 namespace Fennath.Proxy;
 
 /// <summary>
-/// Watches the certificate PFX file on the shared volume for changes.
-/// When the operator writes a new certificate, this service detects the change
-/// and reloads it into the in-memory CertificateStore for zero-downtime rotation.
+/// Watches the certificate storage directory for PFX file changes.
+/// When operators write new certificates, this service detects the changes
+/// and reloads all certificates into the CertificateStore for zero-downtime rotation.
+/// Supports multi-operator deployments by watching subdirectories recursively.
 /// </summary>
 public sealed partial class CertificateFileWatcher(
     CertificateStore CertStore,
@@ -13,9 +14,7 @@ public sealed partial class CertificateFileWatcher(
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var certPath = CertStore.GetCertificatePath();
-        var directory = Path.GetDirectoryName(certPath)!;
-        var fileName = Path.GetFileName(certPath);
+        var directory = CertStore.GetStoragePath();
 
         while (!Directory.Exists(directory))
         {
@@ -26,13 +25,13 @@ public sealed partial class CertificateFileWatcher(
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                // Normal shutdown
                 return;
             }
         }
 
-        using var watcher = new FileSystemWatcher(directory, fileName)
+        using var watcher = new FileSystemWatcher(directory, "*.pfx")
         {
+            IncludeSubdirectories = true,
             NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.CreationTime | NotifyFilters.Size,
             EnableRaisingEvents = true
         };
@@ -42,8 +41,11 @@ public sealed partial class CertificateFileWatcher(
 
         watcher.Changed += OnCertificateFileChanged;
         watcher.Created += OnCertificateFileChanged;
+        watcher.Renamed += OnCertificateFileRenamed;
 
-        LogWatchingStarted(Logger, certPath);
+        // Initial reload catches certs written before watcher attached
+        CertStore.ReloadFromDisk();
+        LogWatchingStarted(Logger, directory);
 
         try
         {
@@ -68,7 +70,20 @@ public sealed partial class CertificateFileWatcher(
         }
     }
 
-    [LoggerMessage(EventId = 1400, Level = LogLevel.Information, Message = "Watching certificate file for changes: {path}")]
+    private void OnCertificateFileRenamed(object sender, RenamedEventArgs e)
+    {
+        try
+        {
+            CertStore.ReloadFromDisk();
+            LogCertificateReloaded(Logger, e.FullPath);
+        }
+        catch (Exception ex)
+        {
+            LogReloadFailed(Logger, e.FullPath, ex);
+        }
+    }
+
+    [LoggerMessage(EventId = 1400, Level = LogLevel.Information, Message = "Watching certificate directory for changes: {path}")]
     private static partial void LogWatchingStarted(ILogger logger, string path);
 
     [LoggerMessage(EventId = 1401, Level = LogLevel.Information, Message = "Certificate reloaded from {path}")]

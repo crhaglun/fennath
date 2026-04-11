@@ -10,12 +10,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
 builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
 
-// YARP route configuration — written by the operator container to the shared volume.
+// YARP route configuration — written by operator container(s) to the shared volume.
 // .NET's built-in file watcher detects changes and YARP's LoadFromConfig() reloads automatically.
-// We need to resolve the path before building the host, so we bind config eagerly here.
-var yarpConfigPath = builder.Configuration.GetSection("Fennath")["YarpConfigPath"]
-    ?? "/data/shared/yarp-config.json";
-builder.Configuration.AddJsonFile(yarpConfigPath, optional: true, reloadOnChange: true);
+// Multi-operator: each operator writes a separate config file; we load and merge them all.
+var fennathSection = builder.Configuration.GetSection("Fennath");
+var yarpConfigPaths = fennathSection.GetSection("YarpConfigPaths").Get<string[]>()
+    ?? ["/data/shared/yarp-config.json"];
+foreach (var path in yarpConfigPaths)
+{
+    builder.Configuration.AddJsonFile(path, optional: true, reloadOnChange: true);
+}
 
 builder.Services
     .AddOptions<ProxyConfig>()
@@ -27,8 +31,6 @@ builder.Services
     .AddOptions<CertificateStoreOptions>()
     .Configure<IOptions<ProxyConfig>>((store, proxy) =>
     {
-        store.Domain = proxy.Value.Domain;
-        store.Subdomain = proxy.Value.Subdomain;
         store.StoragePath = proxy.Value.Certificates.StoragePath;
     });
 
@@ -56,7 +58,7 @@ builder.WebHost.ConfigureKestrel((_, serverOptions) =>
         listenOptions.UseHttps(httpsOptions =>
         {
             var store = serverOptions.ApplicationServices.GetRequiredService<CertificateStore>();
-            httpsOptions.ServerCertificateSelector = (_, _) => store.GetCertificate();
+            httpsOptions.ServerCertificateSelector = (_, hostname) => store.GetCertificate(hostname);
         });
     });
 

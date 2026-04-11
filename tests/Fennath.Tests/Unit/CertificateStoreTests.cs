@@ -10,17 +10,14 @@ namespace Fennath.Tests.Unit;
 public class CertificateStoreTests : IDisposable
 {
     private readonly string _tempDir;
-    private readonly CertificateStore _store;
 
     public CertificateStoreTests()
     {
         _tempDir = Path.Combine(Path.GetTempPath(), $"fennath-cert-test-{Guid.NewGuid():N}");
-        _store = CreateStore();
     }
 
     public void Dispose()
     {
-        _store.Dispose();
         if (Directory.Exists(_tempDir))
         {
             Directory.Delete(_tempDir, recursive: true);
@@ -30,59 +27,49 @@ public class CertificateStoreTests : IDisposable
     }
 
     [Test]
-    public async Task GetCertificate_ReturnsPlaceholderWhenNoCertOnDisk()
+    public async Task GetCertificate_ReturnsFallbackWhenNoCertOnDisk()
     {
-        await Assert.That(_store.GetCertificate()).IsNotNull();
-        await Assert.That(_store.IsPlaceholder).IsTrue();
+        using var store = CreateStore();
+        await Assert.That(store.GetCertificate(null)).IsNotNull();
+        await Assert.That(store.IsPlaceholder).IsTrue();
     }
 
     [Test]
-    public async Task GetCertificate_ReturnsCertAfterStore()
+    public async Task GetCertificate_ReturnsCertAfterReload()
     {
-        StoreTestCert();
-        await Assert.That(_store.GetCertificate()).IsNotNull();
-        await Assert.That(_store.IsPlaceholder).IsFalse();
+        WriteCertToDisk();
+        using var store = CreateStore();
+
+        var cert = store.GetCertificate("anything.example.com");
+        await Assert.That(cert).IsNotNull();
+        await Assert.That(store.IsPlaceholder).IsFalse();
     }
 
     [Test]
     public async Task IsPlaceholder_TrueWhenNoCertOnDisk()
     {
-        await Assert.That(_store.IsPlaceholder).IsTrue();
+        using var store = CreateStore();
+        await Assert.That(store.IsPlaceholder).IsTrue();
     }
 
     [Test]
-    public async Task IsPlaceholder_FalseAfterStoreCertificate()
+    public async Task IsPlaceholder_FalseAfterReloadWithCert()
     {
-        StoreTestCert();
-        await Assert.That(_store.IsPlaceholder).IsFalse();
-    }
+        using var store = CreateStore();
+        WriteCertToDisk();
+        store.ReloadFromDisk();
 
-    [Test]
-    public async Task IsPlaceholder_FalseAfterReloadFromDisk()
-    {
-        StoreTestCert();
-
-        using var newStore = CreateStore();
-        await Assert.That(newStore.IsPlaceholder).IsFalse();
-    }
-
-    [Test]
-    public async Task StoreCertificate_PersistsToDisk()
-    {
-        StoreTestCert();
-
-        var pfxFiles = Directory.GetFiles(_tempDir, "*.pfx");
-        await Assert.That(pfxFiles).Count().IsEqualTo(1);
+        await Assert.That(store.IsPlaceholder).IsFalse();
     }
 
     [Test]
     public async Task LoadFromDisk_LoadsValidCertificate()
     {
-        StoreTestCert();
+        WriteCertToDisk();
+        using var store = CreateStore();
 
-        using var newStore = CreateStore();
-        var remaining = newStore.GetExpiry() - DateTime.UtcNow;
-        await Assert.That(remaining.TotalDays).IsGreaterThan(80);
+        var cert = store.GetCertificate("anything.example.com");
+        await Assert.That(cert.NotAfter > DateTime.UtcNow).IsTrue();
     }
 
     [Test]
@@ -90,49 +77,36 @@ public class CertificateStoreTests : IDisposable
     {
         Directory.CreateDirectory(_tempDir);
         using var expired = CreateCert(TimeSpan.FromDays(-1));
-        await File.WriteAllBytesAsync(
-            Path.Combine(_tempDir, "wildcard.pfx"),
+        File.WriteAllBytes(
+            Path.Combine(_tempDir, "example.com.pfx"),
             expired.Export(X509ContentType.Pfx));
 
-        using var newStore = CreateStore();
-        // Expired cert is skipped; store falls back to placeholder
-        await Assert.That(newStore.IsPlaceholder).IsTrue();
-    }
-
-    [Test]
-    public async Task StoreCertificate_ReplacesExisting()
-    {
-        var first = CreateCert(TimeSpan.FromDays(30));
-        _store.StoreCertificate(first);
-        var firstExpiry = _store.GetExpiry();
-
-        var second = CreateCert(TimeSpan.FromDays(90));
-        _store.StoreCertificate(second);
-        var secondExpiry = _store.GetExpiry();
-
-        await Assert.That(secondExpiry).IsNotEqualTo(firstExpiry);
+        using var store = CreateStore();
+        await Assert.That(store.IsPlaceholder).IsTrue();
     }
 
     [Test]
     public async Task ReloadFromDisk_NeverReturnsNull()
     {
-        // Even when there's nothing on disk, reload should keep the placeholder
-        _store.ReloadFromDisk();
-        await Assert.That(_store.GetCertificate()).IsNotNull();
-        await Assert.That(_store.IsPlaceholder).IsTrue();
+        using var store = CreateStore();
+        store.ReloadFromDisk();
+        await Assert.That(store.GetCertificate(null)).IsNotNull();
+        await Assert.That(store.IsPlaceholder).IsTrue();
     }
 
-    private void StoreTestCert()
+    private void WriteCertToDisk()
     {
-        var cert = CreateCert();
-        _store.StoreCertificate(cert);
+        Directory.CreateDirectory(_tempDir);
+        using var cert = CreateCert();
+        File.WriteAllBytes(
+            Path.Combine(_tempDir, "example.com.pfx"),
+            cert.Export(X509ContentType.Pfx));
     }
 
     private CertificateStore CreateStore()
     {
         var options = Options.Create(new CertificateStoreOptions
         {
-            Domain = "example.com",
             StoragePath = _tempDir
         });
 

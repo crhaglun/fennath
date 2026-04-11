@@ -89,6 +89,7 @@ services:
     image: traefik/whoami
     container_name: echo
     labels:
+      - "fennath.domain=${Fennath__Domain}"
       - "fennath.subdomain=echo"
 
 volumes:

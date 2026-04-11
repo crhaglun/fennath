@@ -17,7 +17,6 @@ namespace Fennath.Operator.Certificates;
 public sealed partial class AcmeService(
     IDnsProvider DnsProvider,
     DnsPropagationChecker PropagationChecker,
-    Fennath.Certificates.CertificateStore CertStore,
     IOptions<OperatorConfig> Options,
     FennathMetrics Metrics,
     ILogger<AcmeService> Logger)
@@ -92,8 +91,6 @@ public sealed partial class AcmeService(
 
         var certificate = X509CertificateLoader.LoadPkcs12(pfxBytes, null,
             X509KeyStorageFlags.Exportable);
-
-        CertStore.StoreCertificate(certificate);
 
         await CleanupChallengeRecordsAsync(createdChallengeSubdomains, ct);
 

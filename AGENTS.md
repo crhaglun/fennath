@@ -32,8 +32,8 @@ fennath/
 │   ├── Dns/                  # DNS management: IP monitoring, reconciliation, Loopia provider
 │   └── Telemetry/            # OpenTelemetry setup for operator
 ├── src/Fennath.Shared/       # Shared library — types used by both containers
-│   ├── Configuration/        # CertificateStoreOptions (shared cert-store config)
-│   ├── Certificates/         # CertificateStore (in-memory + disk, with file-watch reload)
+│   ├── Configuration/        # CertificateStoreOptions (proxy cert-store config)
+│   ├── Certificates/         # CertificateStore (proxy-only: multi-cert SNI store, loaded from disk)
 │   ├── Discovery/            # IRouteDiscovery interface, DiscoveredRoute record
 │   └── Telemetry/            # FennathMetrics (custom OTel instruments)
 ├── tests/Fennath.Tests/      # Unit and integration tests

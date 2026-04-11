@@ -1,5 +1,3 @@
-using Fennath.Certificates;
-using Fennath.Configuration;
 using Fennath.Discovery;
 using Fennath.Operator.Certificates;
 using Fennath.Operator.Configuration;
@@ -18,15 +16,6 @@ builder.Services
     .BindConfiguration(OperatorConfig.SectionName)
     .ValidateOnStart();
 builder.Services.AddSingleton<IValidateOptions<OperatorConfig>, ValidateOperatorConfig>();
-
-builder.Services
-    .AddOptions<CertificateStoreOptions>()
-    .Configure<IOptions<OperatorConfig>>((store, op) =>
-    {
-        store.Domain = op.Value.Domain;
-        store.Subdomain = op.Value.Subdomain;
-        store.StoragePath = op.Value.Certificates.StoragePath;
-    });
 
 // Telemetry
 builder.Services.AddOperatorTelemetry();
@@ -57,7 +46,6 @@ builder.Services.AddHostedService<IpMonitorService>();
 builder.Services.AddHostedService<DnsReconciliationService>();
 
 // Certificates
-builder.Services.AddSingleton<CertificateStore>();
 builder.Services.AddSingleton<DnsPropagationChecker>();
 builder.Services.AddSingleton<AcmeService>();
 builder.Services.AddHostedService<CertificateRenewalService>();
