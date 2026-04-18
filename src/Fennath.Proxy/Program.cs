@@ -71,7 +71,7 @@ app.MapReverseProxy(proxyPipeline =>
     proxyPipeline.UseMiddleware<Fennath.Telemetry.ProxyMetricsMiddleware>();
 });
 
-Log.Starting(app.Logger, config.EffectiveDomain);
+Log.Starting(app.Logger);
 
 await app.RunAsync();
 
@@ -79,6 +79,6 @@ return 0;
 
 internal static partial class Log
 {
-    [LoggerMessage(EventId = 1301, Level = LogLevel.Information, Message = "Fennath proxy starting for domain {domain}")]
-    public static partial void Starting(ILogger logger, string domain);
+    [LoggerMessage(EventId = 1301, Level = LogLevel.Information, Message = "Fennath proxy starting")]
+    public static partial void Starting(ILogger logger);
 }

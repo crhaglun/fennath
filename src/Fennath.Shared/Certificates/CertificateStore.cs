@@ -57,25 +57,35 @@ public sealed partial class CertificateStore : IDisposable
     /// </summary>
     public X509Certificate2 GetCertificate(string? hostname)
     {
-        var snapshot = _snapshot;
-
-        // Fast path: memoized lookup
-        if (hostname is not null && snapshot.LookupCache.TryGetValue(hostname, out var cached))
+        if (hostname is null)
         {
-            return cached;
+            LogFindingCertificateForHostname(_logger, "<null>");
         }
-
-        // Try exact/wildcard match from the cert index
-        if (hostname is not null)
+        else
         {
+            LogFindingCertificateForHostname(_logger, hostname);
+      
+            var snapshot = _snapshot;
+
+            // Fast path: memoized lookup
+            if (snapshot.LookupCache.TryGetValue(hostname, out var cached))
+            {
+                LogFoundFromCache(_logger, hostname);
+                return cached;
+            }
+
+            // Try exact/wildcard match from the cert index
             var matched = ResolveFromIndex(hostname, snapshot.Certificates);
             if (matched is not null)
             {
+                LogFoundFromIndex(_logger, hostname);
+
                 snapshot.LookupCache.TryAdd(hostname, matched);
                 return matched;
             }
         }
 
+        LogCertificateNotFound(_logger, hostname ?? "<null>");
         return _fallbackCert;
     }
 
@@ -248,4 +258,17 @@ public sealed partial class CertificateStore : IDisposable
 
     [LoggerMessage(EventId = 1125, Level = LogLevel.Information, Message = "Certificate store indexed {count} hostname entries")]
     private static partial void LogCertificatesIndexed(ILogger logger, int count);
+
+    [LoggerMessage(EventId = 1126, Level = LogLevel.Information, Message = "Finding certificate for hostname {hostname}")]
+    private static partial void LogFindingCertificateForHostname(ILogger logger, string hostname);
+
+    [LoggerMessage(EventId = 1127, Level = LogLevel.Information, Message = "Found certificate for hostname {hostname} from cache")]
+    private static partial void LogFoundFromCache(ILogger logger, string hostname);
+
+    [LoggerMessage(EventId = 1128, Level = LogLevel.Information, Message = "Found certificate for hostname {hostname} from index")]
+    private static partial void LogFoundFromIndex(ILogger logger, string hostname);
+
+    [LoggerMessage(EventId = 1129, Level = LogLevel.Warning, Message = "Certificate not found for hostname {hostname}")]
+    private static partial void LogCertificateNotFound(ILogger logger, string hostname);
+
 }

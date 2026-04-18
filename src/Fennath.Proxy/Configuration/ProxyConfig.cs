@@ -12,14 +12,6 @@ public sealed class ProxyConfig
 {
     public const string SectionName = "Fennath";
 
-    [Required]
-    public string Domain { get; set; } = "";
-
-    public string Subdomain { get; set; } = "";
-
-    public string EffectiveDomain =>
-        string.IsNullOrEmpty(Subdomain) ? Domain : $"{Subdomain}.{Domain}";
-
     [ValidateObjectMembers]
     public ProxyServerConfig Server { get; set; } = new();
 
